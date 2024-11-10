@@ -9,13 +9,13 @@ class HARSDataset(Dataset):
         super().__init__()
 
         self.data = pd.read_csv(filepath)
-        self.features = self.data.values[:, :-2]
+        self.features = self.data.values[:, :-2].astype(float)
 
         # Map label strings to integer values
         self.labels = np.array([self._map_label(label) for label in self.data.values[:, -1]])
         self.user = self.data.values[:, -2]
     
-    def _map_label(label: str) -> int:
+    def _map_label(self, label: str) -> int:
         label_mapping = {
             'WALKING_UPSTAIRS': 0,
             'WALKING_DOWNSTAIRS': 1,
@@ -34,7 +34,7 @@ class HARSDataset(Dataset):
         return self.features.shape[0]
     
     def __getitem__(self, index) -> tuple[Tensor, Tensor]:
-        features = torch.tensor(self.features[index])
-        labels = torch.tensor(self.labels[index])
+        features = torch.tensor(self.features[index]).float()
+        labels = torch.tensor(self.labels[index]).float()
 
         return (features, labels)

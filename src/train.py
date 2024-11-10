@@ -1,11 +1,27 @@
 import torch
+from torch.utils.data import DataLoader
 import argparse
 from data_handling.loader_files import HARSConfig
+from models.basic import HARSModel
+from data_handling.datasets import HARSDataset
 
 
 
 def main(config: HARSConfig):
+    model = HARSModel(config.device)
+
+    train_data = HARSDataset(config.train_path)
+    test_data = HARSDataset(config.test_path)
+
+    train_loader = DataLoader(train_data, config.batch_size, shuffle=True)
+
+    model.fit(train_loader)
     ...
+
+
+
+
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Training pipeline for validation model")

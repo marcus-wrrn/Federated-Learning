@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 from torch import Tensor
+from torch.utils.data import DataLoader
+from data_handling.datasets import HARSDataset
 
 
 class Net(nn.Module):
@@ -21,13 +23,13 @@ class Net(nn.Module):
         return x
     
 
-class HARSModel(nn.Module):
+class HARSNet(nn.Module):
     """Basic model for the HARS dataset, will be expanded upon later"""
     def __init__(self):
         super().__init__()
 
         self.fc = nn.Sequential(
-            nn.Linear(562, 1024),
+            nn.Linear(561, 1024),
             nn.ReLU(),
             nn.Linear(1024, 2024),
             nn.ReLU(),
@@ -40,3 +42,22 @@ class HARSModel(nn.Module):
     
     def forward(self, x: Tensor) -> Tensor:
         return self.fc(x)
+    
+
+class HARSModel(nn.Module):
+    def __init__(self, device: torch.device):
+        super().__init__()
+        self.network = HARSNet()
+        self.device = device
+
+        self.to(self.device)
+
+    def fit(self, data_load: DataLoader):
+        """Function used to train the HARS model on a dataset"""
+        for feat, label in data_load:
+            feat: Tensor = feat.to(self.device)
+            label: Tensor = label.to(self.device)
+
+            logits: Tensor = self.network(feat)
+
+            ...
