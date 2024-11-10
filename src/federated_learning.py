@@ -3,7 +3,6 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.utils.data as data
 from torchvision import datasets, transforms
-import random
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
 
@@ -20,7 +19,7 @@ class Net(nn.Module):
         self.fc1 = nn.Linear(64 * 7 * 7, 128)
         self.fc2 = nn.Linear(128, 10)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor):
         x = self.pool(torch.relu(self.conv1(x)))
         x = self.pool(torch.relu(self.conv2(x)))
         x = x.view(-1, 64 * 7 * 7)
@@ -56,7 +55,7 @@ def secure_aggregate(models, key):
         for other_model in models[1:]:
             param += other_model.state_dict()[name]
         param /= len(models)
-        # Add noise for "secure" aggregation
+        # Add noise for "secure" aggregation    
         param += noise
     return aggregated_model
 
