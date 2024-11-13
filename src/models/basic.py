@@ -52,12 +52,31 @@ class HARSModel(nn.Module):
 
         self.to(self.device)
 
-    def fit(self, data_load: DataLoader):
-        """Function used to train the HARS model on a dataset"""
-        for feat, label in data_load:
+    def fit(self, data_load: DataLoader, train=True):
+        """
+        Function used to train the HARS model on a dataset
+
+        Parameters:
+        - data_load: DataLoader for the HARS Dataset
+        - train: Boolean to determine backpropogation
+        
+        NOTE: use function with torch.no_grad when evaluating to save on device memory
+        """
+        criterion = nn.BCEWithLogitsLoss()
+
+        total_loss = 0.0
+        for i, (feat, label) in enumerate(data_load):
+            if not i % 100 and i:
+                print(f"Current loss: {total_loss / i}")
+
             feat: Tensor = feat.to(self.device)
             label: Tensor = label.to(self.device)
 
             logits: Tensor = self.network(feat)
 
-            ...
+            loss: Tensor = criterion(logits, label)
+
+            if train: loss.backward()
+            total_loss += loss.item()
+
+        return total_loss / len(data_load)

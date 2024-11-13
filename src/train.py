@@ -15,12 +15,11 @@ def main(config: HARSConfig):
 
     train_loader = DataLoader(train_data, config.batch_size, shuffle=True)
 
-    model.fit(train_loader)
+    for epoch in range(config.epochs):
+        avg_loss = model.fit(train_loader)
+
+
     ...
-
-
-
-
 
 
 if __name__ == "__main__":
@@ -28,7 +27,7 @@ if __name__ == "__main__":
     parser.add_argument("-train_path", type=str, default="/home/marcuswrrn/Projects/Capstone/model_training/data/train.csv", help="Filepath for train file")
     parser.add_argument("-test_path", type=str, default="/home/marcuswrrn/Projects/Capstone/model_training/data/test.csv", help="Filepath for test file")
     parser.add_argument("-e", type=int, default=5, help="Number of epochs")
-    parser.add_argument("-b", type=int, default=10, help="Batch size")
+    parser.add_argument("-b", type=int, default=100, help="Batch size")
     parser.add_argument("-cuda", type=str, default="y", help="Use cuda Y/n")
 
     args = parser.parse_args()

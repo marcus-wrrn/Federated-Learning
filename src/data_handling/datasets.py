@@ -2,17 +2,17 @@ import pandas as pd
 from torch.utils.data import Dataset
 from torch import Tensor
 import torch
-import numpy as np
 
 class HARSDataset(Dataset):
     def __init__(self, filepath: str) -> None:
         super().__init__()
 
         self.data = pd.read_csv(filepath)
-        self.features = self.data.values[:, :-2].astype(float)
+        self.features = torch.tensor(self.data.values[:, :-2].astype(float)).float()
 
         # Map label strings to integer values
-        self.labels = np.array([self._map_label(label) for label in self.data.values[:, -1]])
+        self.labels = torch.tensor([self._map_label(label) for label in self.data.values[:, -1]])
+        self.labels = torch.nn.functional.one_hot(self.labels, num_classes=6).float()
         self.user = self.data.values[:, -2]
     
     def _map_label(self, label: str) -> int:
@@ -34,7 +34,7 @@ class HARSDataset(Dataset):
         return self.features.shape[0]
     
     def __getitem__(self, index) -> tuple[Tensor, Tensor]:
-        features = torch.tensor(self.features[index]).float()
-        labels = torch.tensor(self.labels[index]).float()
+        features = self.features[index]
+        labels = self.labels[index]
 
         return (features, labels)
