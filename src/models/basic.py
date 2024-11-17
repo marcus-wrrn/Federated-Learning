@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 from torch.utils.data import DataLoader
+from torch.optim.lr_scheduler import StepLR
+from torch.optim import AdamW
 from data_handling.datasets import HARSDataset
 
 
@@ -21,7 +23,6 @@ class Net(nn.Module):
         x = torch.relu(self.fc1(x))
         x = self.fc2(x)
         return x
-    
 
 class HARSNet(nn.Module):
     """Basic model for the HARS dataset, will be expanded upon later"""
@@ -30,14 +31,16 @@ class HARSNet(nn.Module):
 
         self.fc = nn.Sequential(
             nn.Linear(561, 1024),
-            nn.ReLU(),
-            nn.Linear(1024, 2024),
-            nn.ReLU(),
-            nn.Linear(2024, 1024),
-            nn.ReLU(),
-            nn.Linear(1024, 256),
-            nn.ReLU(),
-            nn.Linear(256, 6)
+            nn.GELU(),
+            nn.Linear(1024, 3000),
+            nn.GELU(),
+            nn.Linear(3000, 2000),
+            nn.GELU(),
+            nn.Linear(2000, 512),
+            nn.GELU(),
+            nn.Linear(512, 100),
+            nn.GELU(),
+            nn.Linear(100, 6)
         )
     
     def forward(self, x: Tensor) -> Tensor:
@@ -52,14 +55,14 @@ class HARSModel(nn.Module):
 
         self.to(self.device)
 
-    def fit(self, data_load: DataLoader, train=True):
+    def fit(self, data_load: DataLoader, optimizer: AdamW, train=True):
         """
         Function used to train the HARS model on a dataset
 
         Parameters:
         - data_load: DataLoader for the HARS Dataset
         - train: Boolean to determine backpropogation
-        
+
         NOTE: use function with torch.no_grad when evaluating to save on device memory
         """
         criterion = nn.BCEWithLogitsLoss()
@@ -76,7 +79,10 @@ class HARSModel(nn.Module):
 
             loss: Tensor = criterion(logits, label)
 
-            if train: loss.backward()
+            if train: 
+                loss.backward()
+                optimizer.step()
+            
             total_loss += loss.item()
 
         return total_loss / len(data_load)
