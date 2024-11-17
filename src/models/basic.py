@@ -86,3 +86,6 @@ class HARSModel(nn.Module):
             total_loss += loss.item()
 
         return total_loss / len(data_load)
+    
+    def forward(self, x: Tensor) -> Tensor:        
+        return torch.sigmoid(self.network(x))
