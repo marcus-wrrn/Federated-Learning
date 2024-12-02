@@ -13,7 +13,8 @@ def create_app(test_config=None):
         CLIENT_UPDATES = [],
         CURRENT_ROUND = 0,
         ROUND_COMPLETED = threading.Event(),
-        NUM_CLIENTS = 2 # TODO: Should eventually be removed to allow for a dynamic number of clients
+        NUM_CLIENTS = 2, # TODO: Should eventually be removed to allow for a dynamic number of clients
+        GLOBAL_BIN_PATH = "global_model.bin"
     )
 
     if test_config is None:

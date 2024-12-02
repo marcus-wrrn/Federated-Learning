@@ -1,37 +1,22 @@
-from flask import request, jsonify, Blueprint, current_app
+from flask import request, jsonify, Blueprint, current_app, send_file
 import torch
 import threading
 from flcore.models.basic import HARSModel
-import io
-import gzip
+import os
 
 bp = Blueprint("training", __name__, url_prefix="/training")
 
 @bp.route('/get_model', methods=['GET'])
 def get_model():
-    #global global_model_state, current_round, round_completed
-    global_model: HARSModel = current_app.config["GLOBAL_MODEL"]
-    #round_completed: threading.Event = current_app.config("ROUND_COMPLETED")
+    path = os.path.join(current_app.instance_path, current_app.config["GLOBAL_BIN_PATH"])
 
-    # Moved this logic to receive update
-    # if round_completed.is_set():
-    #     round_completed.clear()
-    #     current_app.config["CURRENT_ROUND"] += 1
-    
-    # Model should be saved only after aggregation
-    # model_bytes = torch.save(global_model.state_dict(), 'global_model.pt')
-    # with open('global_model.pt', 'rb') as f:
-    #     model_data = f.read()
+    if not os.path.exists(path):
+        global_model: HARSModel = current_app.config["GLOBAL_MODEL"]
+        bin_data = global_model.export_binary(compress=True)
+        with open(path, 'wb') as fp:
+            fp.write(bin_data)
 
-    # Send the global model parameters to the client
-    bytes_data = io.BytesIO()
-    torch.save(global_model.state_dict(), bytes_data)
-    bytes_data.seek(0)
-    # TODO: Save this value to an instance path to avoid repeated calculation
-    bytes_data = gzip.compress(bytes_data.getvalue())
-    print("Sending bytes")
-
-    return bytes_data
+    return send_file(path)
 
 @bp.route('/send_update', methods=['POST'])
 def receive_update():
@@ -63,6 +48,13 @@ def receive_update():
         torch.save(global_model_state, "global_model.pt")
         current_app.config["CLIENT_UPDATES"] = []
         current_app.config["CURRENT_ROUND"] += 1
+
+        # Save to file
+        path = os.path.join(current_app.instance_path, current_app.config["GLOBAL_BIN_PATH"])
+        global_binary = global_model.export_binary()
+
+        with open(path, "wb") as fp:
+            fp.write(global_binary)
 
         round_completed.clear()
         

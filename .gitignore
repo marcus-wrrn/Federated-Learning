@@ -2,3 +2,4 @@
 __pycache__
 flcore.egg-info
 dist
+instance/
