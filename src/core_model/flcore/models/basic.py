@@ -2,9 +2,9 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 from torch.utils.data import DataLoader
-from torch.optim.lr_scheduler import StepLR
 from torch.optim import AdamW
-from flcore.data_handling.datasets import HARSDataset
+import io
+import gzip
 
 
 class Net(nn.Module):
@@ -89,3 +89,30 @@ class HARSModel(nn.Module):
     
     def forward(self, x: Tensor) -> Tensor:        
         return torch.sigmoid(self.network(x))
+    
+
+    # Methods for federated learning: 
+    # TODO: Move to a parent class once we start working with other models
+    def export_binary(self) -> bytes:
+        """
+        Exports state dictionary into a compressed binary file
+        """
+        bytes_data = io.BytesIO()
+        torch.save(self.state_dict(), bytes_data)
+
+        # Set pointer to 0
+        bytes_data.seek(0)
+
+        bytes_data = gzip.compress(bytes_data.getvalue())
+        return bytes_data
+    
+    def import_binary(self, byte_data: bytes):
+        """
+        Imports a compressed state dictionary in binary format and loads it into the models current state dictionary
+        """
+        byte_data = gzip.decompress(byte_data)
+        byte_data = io.BytesIO(byte_data)
+
+        state_dict = torch.load(byte_data)
+        self.load_state_dict(state_dict)
+
