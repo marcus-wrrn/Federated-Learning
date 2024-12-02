@@ -4,7 +4,7 @@ from torch import Tensor
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import StepLR
 from torch.optim import AdamW
-from data_handling.datasets import HARSDataset
+from flcore.data_handling.datasets import HARSDataset
 
 
 class Net(nn.Module):

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "flcore"  # Make this match the setup.py name
-version = "0.0.1"
+version = "0.0.2"
 authors = [
     {name = "Marcus Warren", email = "marcuswrrn@gmail.com"}
 ]

@@ -3,8 +3,9 @@ import torch
 import threading
 from flcore.models.basic import HARSModel
 import io
+import gzip
 
-bp = Blueprint("training", __name__, url_prefix="training")
+bp = Blueprint("training", __name__, url_prefix="/training")
 
 @bp.route('/get_model', methods=['GET'])
 def get_model():
@@ -17,16 +18,19 @@ def get_model():
     #     round_completed.clear()
     #     current_app.config["CURRENT_ROUND"] += 1
     
-
-    # Should not save the model every time a user makes a retrieval request
-    # Leads to unnescessary IO calls and server slow downs
     # Model should be saved only after aggregation
-    # model_bytes = torch.save(global_model_state, 'global_model.pt')
+    # model_bytes = torch.save(global_model.state_dict(), 'global_model.pt')
     # with open('global_model.pt', 'rb') as f:
     #     model_data = f.read()
 
     # Send the global model parameters to the client
-    bytes_data = io.BytesIO(global_model.state_dict())
+    bytes_data = io.BytesIO()
+    torch.save(global_model.state_dict(), bytes_data)
+    bytes_data.seek(0)
+    # TODO: Save this value to an instance path to avoid repeated calculation
+    bytes_data = gzip.compress(bytes_data.getvalue())
+    print("Sending bytes")
+
     return bytes_data
 
 @bp.route('/send_update', methods=['POST'])
