@@ -2,7 +2,6 @@ import argparse
 import os
 import torch
 from torch import Tensor
-import matplotlib.pyplot as plt
 from models.basic import HARSModel
 from data_handling.datasets import HARSDataset
 
@@ -30,8 +29,8 @@ def validate_model(model_path: str, data_path: str, device: torch.device):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-path", type=str, default="/home/marcuswrrn/Projects/Capstone/model_training/HARSModel151517112024")
-    parser.add_argument("-data", type=str, default="/home/marcuswrrn/Projects/Capstone/model_training/data/test.csv")
+    parser.add_argument("-path", type=str, default="/home/marcuswrrn/Projects/Capstone/models/HARSModel151517112024")
+    parser.add_argument("-data", type=str, default="/home/marcuswrrn/Projects/Capstone/data/test.csv")
     parser.add_argument("-cuda", type=str, help="Use Cuda: Y/n", default="Y")
 
     args = parser.parse_args()

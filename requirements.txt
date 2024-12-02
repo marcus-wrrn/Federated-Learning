@@ -2,3 +2,6 @@ torch
 torchvision
 matplotlib
 pandas
+flask
+build
+requests

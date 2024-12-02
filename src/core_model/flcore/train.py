@@ -34,8 +34,6 @@ def main(config: HARSConfig):
 
     logger.save_log(model)
 
-    
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Training pipeline for validation model")
