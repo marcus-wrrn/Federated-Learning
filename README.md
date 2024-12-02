@@ -35,7 +35,7 @@ python -m build
 
 Install the generated package:
 
-pip install ./dist/flcore-0.0.1-py3-none-any.whl 
+pip install ./dist/flcore-0.0.2-py3-none-any.whl 
 
     Note: The core model logic is packaged as a standalone module for modularity and reusability. 
     After installation you should be able to use flcore as a standalone python package. 
