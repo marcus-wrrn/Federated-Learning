@@ -18,7 +18,7 @@ def create_app(test_config=None):
     except OSError:
         pass
 
-    from . import connected
-    app.register_blueprint(connected.bp)
+    from . import server
+    app.register_blueprint(server.bp)
     
     return app

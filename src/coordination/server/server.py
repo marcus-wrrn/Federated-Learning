@@ -1,11 +1,9 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Blueprint
 import torch
 import threading
-import sys
 from models.basic import HARSModel
-import numpy as np
 
-app = Flask(__name__)
+bp = Blueprint("training", __name__)
 
 # Global model
 global_model = HARSModel(device='cpu')
@@ -18,7 +16,7 @@ round_completed = threading.Event()
 
 current_round = 0
 
-@app.route('/get_model', methods=['GET'])
+@bp.route('/get_model', methods=['GET'])
 def get_model():
     global global_model_state, current_round, round_completed
     if round_completed.is_set():
@@ -30,7 +28,7 @@ def get_model():
         model_data = f.read()
     return model_data
 
-@app.route('/send_update', methods=['POST'])
+@bp.route('/send_update', methods=['POST'])
 def receive_update():
     global client_updates, global_model_state
     # Receive updated model parameters from client
@@ -51,7 +49,7 @@ def receive_update():
         round_completed.set()
     return 'Update received', 200
 
-@app.route('/is_aggregated', methods=['GET'])
+@bp.route('/is_aggregated', methods=['GET'])
 def is_aggregated():
     return jsonify({'aggregated': round_completed.is_set()})
 
