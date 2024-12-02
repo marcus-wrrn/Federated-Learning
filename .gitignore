@@ -1,4 +1,4 @@
 .venv
 __pycache__
-fl_core.egg-info
+flcore.egg-info
 dist

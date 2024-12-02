@@ -2,8 +2,8 @@
 import requests
 import torch
 from torch.utils.data import DataLoader
-from models.basic import HARSModel
-from data_handling.datasets import HARSDataset
+from core_model.models.basic import HARSModel
+from core_model.data_handling.datasets import HARSDataset
 import argparse
 import time
 import os
