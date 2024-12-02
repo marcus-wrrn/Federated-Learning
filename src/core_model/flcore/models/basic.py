@@ -6,26 +6,8 @@ from torch.optim import AdamW
 import io
 import gzip
 
-
-class Net(nn.Module):
-    def __init__(self):
-        super(Net, self).__init__()
-        self.conv1 = nn.Conv2d(1, 32, kernel_size=3, stride=1, padding=1)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1)
-        self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
-        self.fc1 = nn.Linear(64 * 7 * 7, 128)
-        self.fc2 = nn.Linear(128, 10)
-
-    def forward(self, x: torch.Tensor):
-        x = self.pool(torch.relu(self.conv1(x)))
-        x = self.pool(torch.relu(self.conv2(x)))
-        x = x.view(-1, 64 * 7 * 7)
-        x = torch.relu(self.fc1(x))
-        x = self.fc2(x)
-        return x
-
 class HARSNet(nn.Module):
-    """Basic model for the HARS dataset, will be expanded upon later"""
+    """Basic model for the HARS dataset"""
     def __init__(self):
         super().__init__()
 
@@ -48,6 +30,7 @@ class HARSNet(nn.Module):
     
 
 class HARSModel(nn.Module):
+    """Full HARS Model: Contains functionallity for training and """
     def __init__(self, device: torch.device):
         super().__init__()
         self.network = HARSNet()
@@ -93,7 +76,7 @@ class HARSModel(nn.Module):
 
     # Methods for federated learning: 
     # TODO: Move to a parent class once we start working with other models
-    def export_binary(self) -> bytes:
+    def export_binary(self, compress=True) -> bytes:
         """
         Exports state dictionary into a compressed binary file
         """
@@ -103,16 +86,21 @@ class HARSModel(nn.Module):
         # Set pointer to 0
         bytes_data.seek(0)
 
-        bytes_data = gzip.compress(bytes_data.getvalue())
-        return bytes_data
+        if compress:
+            return gzip.compress(bytes_data.getvalue())
+        
+        return bytes_data.getvalue()
     
-    def import_binary(self, byte_data: bytes):
+    def import_binary(self, byte_data: bytes, decompress=True):
         """
         Imports a compressed state dictionary in binary format and loads it into the models current state dictionary
         """
-        byte_data = gzip.decompress(byte_data)
+        
+        if decompress:
+            byte_data = gzip.decompress(byte_data)
         byte_data = io.BytesIO(byte_data)
+        byte_data.seek(0)
 
-        state_dict = torch.load(byte_data)
+        state_dict = torch.load(byte_data, weights_only=True)
         self.load_state_dict(state_dict)
 
