@@ -4,3 +4,4 @@ matplotlib
 pandas
 flask
 build
+requests

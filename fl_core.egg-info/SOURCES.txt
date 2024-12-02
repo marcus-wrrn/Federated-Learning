@@ -1,0 +1,17 @@
+README.md
+pyproject.toml
+setup.py
+fl_core.egg-info/PKG-INFO
+fl_core.egg-info/SOURCES.txt
+fl_core.egg-info/dependency_links.txt
+fl_core.egg-info/requires.txt
+fl_core.egg-info/top_level.txt
+src/core_model/__init__.py
+src/core_model/federated_learning.py
+src/core_model/test.py
+src/core_model/train.py
+src/core_model/data_handling/__init__.py
+src/core_model/data_handling/datasets.py
+src/core_model/data_handling/loader_files.py
+src/core_model/models/__init__.py
+src/core_model/models/basic.py

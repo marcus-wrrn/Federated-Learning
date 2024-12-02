@@ -6,7 +6,11 @@ setup(
     description="Core Model functionality for the project",
     author="Marcus Warren",
     author_email="marcuswrrn@gmail.com",
-    packages=find_packages(),  # Automatically find packages in your project
+    packages=[
+        "src.core_model",
+        "src.core_model.models",
+        "src.core_model.data_handling"
+    ],  # Automatically find packages in your project
     install_requires=[
         "torch==2.5.0",
         "torchvision==0.20.0",

@@ -1,0 +1,12 @@
+Metadata-Version: 2.1
+Name: fl_core
+Version: 0.0.1
+Summary: Core functionality for a federated learning system developed for our final year Capstone Project
+Author: Marcus Warren
+Author-email: Marcus Warren <marcuswrrn@gmail.com>
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: torch==2.5.0
+Requires-Dist: torchvision==0.20.0
+Requires-Dist: matplotlib>=3.9
+Requires-Dist: pandas
