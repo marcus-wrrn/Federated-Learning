@@ -8,12 +8,14 @@ def create_app(test_config=None):
 
     # Add global values 
     # TODO: Move to config.py file
+    # TODO: This method of global variables could potentially lead to bugs. We should be using a file system or database to store information SQLite may be a good choice
     app.config.from_mapping(
-        GLOBAL_MODEL = HARSModel(device='cpu'),
+        DATAPATH = os.path.join(app.instance_path, "db.sqlite"),
         CLIENT_UPDATES = [],
         CURRENT_ROUND = 0,
         ROUND_COMPLETED = threading.Event(),
-        NUM_CLIENTS = 2 # TODO: Should eventually be removed to allow for a dynamic number of clients
+        NUM_CLIENTS = 2, # TODO: Should eventually be removed to allow for a dynamic number of clients
+        GLOBAL_BIN_PATH = os.path.join(app.instance_path, "global_model.bin")
     )
 
     if test_config is None:
@@ -30,5 +32,11 @@ def create_app(test_config=None):
     # Add routes to app
     from . import server
     app.register_blueprint(server.bp)
+
+    # Setup
+    model = HARSModel(device='cpu')
+    model_bin = model.export_binary()
+    with open(app.config["GLOBAL_BIN_PATH"], "wb") as fp:
+        fp.write(model_bin)
     
     return app

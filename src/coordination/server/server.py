@@ -1,37 +1,19 @@
-from flask import request, jsonify, Blueprint, current_app
+from flask import request, jsonify, Blueprint, current_app, send_file
 import torch
 import threading
 from flcore.models.basic import HARSModel
-import io
-import gzip
+import os
 
 bp = Blueprint("training", __name__, url_prefix="/training")
 
 @bp.route('/get_model', methods=['GET'])
 def get_model():
-    #global global_model_state, current_round, round_completed
-    global_model: HARSModel = current_app.config["GLOBAL_MODEL"]
-    #round_completed: threading.Event = current_app.config("ROUND_COMPLETED")
+    path = current_app.config["GLOBAL_BIN_PATH"]
 
-    # Moved this logic to receive update
-    # if round_completed.is_set():
-    #     round_completed.clear()
-    #     current_app.config["CURRENT_ROUND"] += 1
-    
-    # Model should be saved only after aggregation
-    # model_bytes = torch.save(global_model.state_dict(), 'global_model.pt')
-    # with open('global_model.pt', 'rb') as f:
-    #     model_data = f.read()
+    if not os.path.exists(path):
+        return 500, "Model uninitialized"
 
-    # Send the global model parameters to the client
-    bytes_data = io.BytesIO()
-    torch.save(global_model.state_dict(), bytes_data)
-    bytes_data.seek(0)
-    # TODO: Save this value to an instance path to avoid repeated calculation
-    bytes_data = gzip.compress(bytes_data.getvalue())
-    print("Sending bytes")
-
-    return bytes_data
+    return send_file(path)
 
 @bp.route('/send_update', methods=['POST'])
 def receive_update():
@@ -59,8 +41,13 @@ def receive_update():
         states = [cs[0] for cs in client_updates]
         global_model_state = aggregate_models(states)
         
-        global_model.load_state_dict(global_model_state)
-        torch.save(global_model_state, "global_model.pt")
+        global_model = HARSModel(device='cpu').load_state_dict(global_model_state)
+        global_binary = global_model.export_binary()
+
+        # Overwrite the global binary
+        with open(current_app.config["GLOBAL_BIN_PATH"], "wb") as fp:
+            fp.write(global_binary)
+
         current_app.config["CLIENT_UPDATES"] = []
         current_app.config["CURRENT_ROUND"] += 1
 
@@ -74,7 +61,7 @@ def is_aggregated():
     return jsonify({'aggregated': round_completed.is_set()})
 
 
-# TODO: Improve aggregation logic
+# TODO: Improve aggregation logic and move to seperate file
 def aggregate_models(client_states: dict) -> dict:
     # Simple average of model parameters
     global_model_state: dict = current_app.config["GLOBAL_MODEL"].state_dict()
@@ -84,8 +71,3 @@ def aggregate_models(client_states: dict) -> dict:
         new_state[key] = sum([client_state[key] for client_state in client_states]) / len(client_states)
     return new_state
 
-# def run_server():
-#     app.run(host='0.0.0.0', port=8080, threaded=False, processes=1)
-
-# if __name__ == '__main__':
-#     run_server()

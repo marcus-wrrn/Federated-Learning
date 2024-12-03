@@ -2,30 +2,12 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 from torch.utils.data import DataLoader
-from torch.optim.lr_scheduler import StepLR
 from torch.optim import AdamW
-from flcore.data_handling.datasets import HARSDataset
-
-
-class Net(nn.Module):
-    def __init__(self):
-        super(Net, self).__init__()
-        self.conv1 = nn.Conv2d(1, 32, kernel_size=3, stride=1, padding=1)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1)
-        self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
-        self.fc1 = nn.Linear(64 * 7 * 7, 128)
-        self.fc2 = nn.Linear(128, 10)
-
-    def forward(self, x: torch.Tensor):
-        x = self.pool(torch.relu(self.conv1(x)))
-        x = self.pool(torch.relu(self.conv2(x)))
-        x = x.view(-1, 64 * 7 * 7)
-        x = torch.relu(self.fc1(x))
-        x = self.fc2(x)
-        return x
+import io
+import gzip
 
 class HARSNet(nn.Module):
-    """Basic model for the HARS dataset, will be expanded upon later"""
+    """Basic model for the HARS dataset"""
     def __init__(self):
         super().__init__()
 
@@ -48,11 +30,12 @@ class HARSNet(nn.Module):
     
 
 class HARSModel(nn.Module):
+    """Full HARS Model: Contains functionallity for training and """
     def __init__(self, device: torch.device):
         super().__init__()
         self.network = HARSNet()
         self.device = device
-
+        self.criterion = nn.BCEWithLogitsLoss()
         self.to(self.device)
 
     def fit(self, data_load: DataLoader, optimizer: AdamW, train=True):
@@ -65,7 +48,6 @@ class HARSModel(nn.Module):
 
         NOTE: use function with torch.no_grad when evaluating to save on device memory
         """
-        criterion = nn.BCEWithLogitsLoss()
 
         total_loss = 0.0
         for i, (feat, label) in enumerate(data_load):
@@ -77,7 +59,7 @@ class HARSModel(nn.Module):
 
             logits: Tensor = self.network(feat)
 
-            loss: Tensor = criterion(logits, label)
+            loss: Tensor = self.criterion(logits, label)
 
             if train: 
                 loss.backward()
@@ -89,3 +71,35 @@ class HARSModel(nn.Module):
     
     def forward(self, x: Tensor) -> Tensor:        
         return torch.sigmoid(self.network(x))
+    
+
+    # Methods for federated learning: 
+    # TODO: Move to a parent class once we start working with other models
+    def export_binary(self, compress=True) -> bytes:
+        """
+        Exports state dictionary into a compressed binary file
+        """
+        bytes_data = io.BytesIO()
+        torch.save(self.state_dict(), bytes_data)
+
+        # Set pointer to 0
+        bytes_data.seek(0)
+
+        if compress:
+            return gzip.compress(bytes_data.getvalue())
+
+        return bytes_data.getvalue()
+    
+    def import_binary(self, byte_data: bytes, decompress=True):
+        """
+        Imports a compressed state dictionary in binary format and loads it into the models current state dictionary
+        """
+        
+        if decompress:
+            byte_data = gzip.decompress(byte_data)
+        byte_data = io.BytesIO(byte_data)
+        byte_data.seek(0)
+
+        state_dict = torch.load(byte_data, weights_only=True)
+        self.load_state_dict(state_dict)
+
