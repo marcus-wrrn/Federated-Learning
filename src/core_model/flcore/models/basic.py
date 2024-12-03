@@ -35,7 +35,7 @@ class HARSModel(nn.Module):
         super().__init__()
         self.network = HARSNet()
         self.device = device
-
+        self.criterion = nn.BCEWithLogitsLoss()
         self.to(self.device)
 
     def fit(self, data_load: DataLoader, optimizer: AdamW, train=True):
@@ -48,7 +48,6 @@ class HARSModel(nn.Module):
 
         NOTE: use function with torch.no_grad when evaluating to save on device memory
         """
-        criterion = nn.BCEWithLogitsLoss()
 
         total_loss = 0.0
         for i, (feat, label) in enumerate(data_load):
@@ -60,7 +59,7 @@ class HARSModel(nn.Module):
 
             logits: Tensor = self.network(feat)
 
-            loss: Tensor = criterion(logits, label)
+            loss: Tensor = self.criterion(logits, label)
 
             if train: 
                 loss.backward()
@@ -88,7 +87,7 @@ class HARSModel(nn.Module):
 
         if compress:
             return gzip.compress(bytes_data.getvalue())
-        
+
         return bytes_data.getvalue()
     
     def import_binary(self, byte_data: bytes, decompress=True):

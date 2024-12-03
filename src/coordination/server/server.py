@@ -8,13 +8,10 @@ bp = Blueprint("training", __name__, url_prefix="/training")
 
 @bp.route('/get_model', methods=['GET'])
 def get_model():
-    path = os.path.join(current_app.instance_path, current_app.config["GLOBAL_BIN_PATH"])
+    path = current_app.config["GLOBAL_BIN_PATH"]
 
     if not os.path.exists(path):
-        global_model: HARSModel = current_app.config["GLOBAL_MODEL"]
-        bin_data = global_model.export_binary(compress=True)
-        with open(path, 'wb') as fp:
-            fp.write(bin_data)
+        return 500, "Model uninitialized"
 
     return send_file(path)
 
@@ -44,17 +41,15 @@ def receive_update():
         states = [cs[0] for cs in client_updates]
         global_model_state = aggregate_models(states)
         
-        global_model.load_state_dict(global_model_state)
-        torch.save(global_model_state, "global_model.pt")
-        current_app.config["CLIENT_UPDATES"] = []
-        current_app.config["CURRENT_ROUND"] += 1
-
-        # Save to file
-        path = os.path.join(current_app.instance_path, current_app.config["GLOBAL_BIN_PATH"])
+        global_model = HARSModel(device='cpu').load_state_dict(global_model_state)
         global_binary = global_model.export_binary()
 
-        with open(path, "wb") as fp:
+        # Overwrite the global binary
+        with open(current_app.config["GLOBAL_BIN_PATH"], "wb") as fp:
             fp.write(global_binary)
+
+        current_app.config["CLIENT_UPDATES"] = []
+        current_app.config["CURRENT_ROUND"] += 1
 
         round_completed.clear()
         
@@ -66,7 +61,7 @@ def is_aggregated():
     return jsonify({'aggregated': round_completed.is_set()})
 
 
-# TODO: Improve aggregation logic
+# TODO: Improve aggregation logic and move to seperate file
 def aggregate_models(client_states: dict) -> dict:
     # Simple average of model parameters
     global_model_state: dict = current_app.config["GLOBAL_MODEL"].state_dict()
@@ -76,8 +71,3 @@ def aggregate_models(client_states: dict) -> dict:
         new_state[key] = sum([client_state[key] for client_state in client_states]) / len(client_states)
     return new_state
 
-# def run_server():
-#     app.run(host='0.0.0.0', port=8080, threaded=False, processes=1)
-
-# if __name__ == '__main__':
-#     run_server()
