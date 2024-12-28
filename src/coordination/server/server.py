@@ -3,6 +3,7 @@ import torch
 import threading
 from flcore.models.basic import HARSModel
 import os
+import sqlite3
 
 bp = Blueprint("training", __name__, url_prefix="/training")
 
@@ -54,6 +55,22 @@ def receive_update():
         round_completed.clear()
         
     return 'Update received', 200
+
+@bp.route('/init_connection', methods=['POST'])
+def add_client():
+    client_key = request.data
+    # will do the number of clients here
+    # check to see if the key and the ip are in use
+    # store info in a db?
+    # need to get client list
+    client_list = []
+    ip_address = request.remote_addr
+    db = sqlite3.connect(current_app.config["DATAPATH"])
+    max_id = db.execute("SELECT MAX(id) FROM clients")
+    existing_client = db.execute("SELECT * FROM clients WHERE ip_address = ? AND client_id = ?",(ip_address,client_key)).fetchone
+    if not existing_client:
+        db.add_client(client_key,ip_address)
+        current_app.config["NUM_CLIENTS"] = current_app.config["NUM_CLIENTS"] + 1 # add 1 to the number of clients # might be able to calculate this number from the database 
 
 @bp.route('/is_aggregated', methods=['GET'])
 def is_aggregated():

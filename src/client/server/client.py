@@ -7,6 +7,10 @@ from flcore.data_handling.datasets import HARSDataset
 import argparse
 import time
 import os
+import random
+import datetime
+import hashlib
+import string
 
 def download_model(server_url, client_id):
     if not server_url.startswith('http://') and not server_url.startswith('https://'):
@@ -65,6 +69,23 @@ def wait_for_aggregation(server_url):
         if response.json().get('aggregated'):
             break
         time.sleep(1)  # Wait before checking again
+
+def generate_random_key():
+    now = datetime.datetime.now()
+    strdate = now.isoformat()
+    rand_key = ''
+    characters = string.ascii_letters + string.digits
+    rand_key = rand_key.join(random.choices(characters, random.randint()))
+    key = rand_key + strdate
+    key = key.encode()
+    hash =  hashlib.md5(key).hexdigest()
+
+def upload_key(server_url):
+    if not server_url.startswith('http://') and not server_url.startswith('https://'):
+        server_url = 'http://' + server_url
+    client_key = generate_random_key()
+    response = requests.post(f'{server_url}/init_connection', data=client_key)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
