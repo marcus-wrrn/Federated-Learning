@@ -83,7 +83,7 @@ def generate_random_key():
     key_file = open("client_key.txt","w")
     key_file.write(hash)
     key_file.close()
-    return hash()
+    return hash
 
 def upload_key(server_url):
     if not server_url.startswith('http://') and not server_url.startswith('https://'):

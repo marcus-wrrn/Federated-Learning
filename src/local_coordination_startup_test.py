@@ -5,7 +5,7 @@ parser = argparse.ArgumentParser(description="A script to start a local coordina
 parser.add_argument('-ip',type = str,help ="Ip address")
 args = parser.parse_args()
 
-if(args.ip=="josh")
+if(args.ip=="josh"):
     ip_address = '192.168.2.24'
 else:
     ip_address = args.ip
