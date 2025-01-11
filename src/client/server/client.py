@@ -7,10 +7,7 @@ from flcore.data_handling.datasets import HARSDataset
 import argparse
 import time
 import os
-import random
-import datetime
-import hashlib
-import string
+
 
 def download_model(server_url, client_id):
     if not server_url.startswith('http://') and not server_url.startswith('https://'):
@@ -47,19 +44,22 @@ def upload_model(server_url, model_state, client_id):
 
     return response
 
-def train(model, train_loader, device):
+def train(model: HARSModel, train_loader, device):
+    
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-5)
-    model.train()
+    if not model.training:
+        model.train()
+    loss = model.fit(train_loader, optimizer, train=True)
 
-    for batch in train_loader:
-        optimizer.zero_grad()
-        data, target = batch  # Unpack the batch
-        data = data.to(device)
-        target = target.to(device)
-        output = model(data)
-        loss = torch.nn.functional.cross_entropy(output, target)
-        loss.backward()
-        optimizer.step()
+    # for batch in train_loader:
+    #     optimizer.zero_grad()
+    #     data, target = batch  # Unpack the batch
+    #     data = data.to(device)
+    #     target = target.to(device)
+    #     output = model(data)
+    #     loss = torch.nn.functional.cross_entropy(output, target)
+    #     loss.backward()
+    #     optimizer.step()
     
     return model.state_dict()
 
@@ -70,40 +70,7 @@ def wait_for_aggregation(server_url):
             break
         time.sleep(1)  # Wait before checking again
 
-def generate_random_key():
-    now = datetime.datetime.now()
-    strdate = now.isoformat()
-    rand_key = ''
-    characters = string.ascii_letters + string.digits
-    rand_key = rand_key.join(random.choices(characters, random.randint()))
-    key = rand_key + strdate
-    key = key.encode()
-    hash =  hashlib.md5(key).hexdigest()
-    key_file = open("client_key.txt","r")
-    key_file.write(hash)
-    key_file.close*()
-    return hash()
 
-def upload_key(server_url):
-    if not server_url.startswith('http://') and not server_url.startswith('https://'):
-        server_url = 'http://' + server_url
-    client_key = get_key()
-    response = requests.post(f'{server_url}/init_connection', data=client_key)
-
-def load_key():
-    #locations for where more security could be added as the clientkey is currently stored as text file 
-    if os.path.exists("client_key.txt"):
-        key_file = open("client_key.txt","r")
-        client_key = key_file.read()
-        key_file.close*()
-    else: 
-        client_key = None
-    return client_key
-def get_key():
-    client_key = load_key
-    if not client_key:
-        client_key = generate_random_key()
-    return client_key
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
