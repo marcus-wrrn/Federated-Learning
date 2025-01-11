@@ -75,13 +75,14 @@ def generate_random_key():
     strdate = now.isoformat()
     rand_key = ''
     characters = string.ascii_letters + string.digits
-    rand_key = rand_key.join(random.choices(characters, random.randint()))
+    length = 64-26
+    rand_key = rand_key.join(random.choices(characters,k = length))
     key = rand_key + strdate
     key = key.encode()
     hash =  hashlib.md5(key).hexdigest()
-    key_file = open("client_key.txt","r")
+    key_file = open("client_key.txt","w")
     key_file.write(hash)
-    key_file.close*()
+    key_file.close()
     return hash()
 
 def upload_key(server_url):
@@ -95,12 +96,12 @@ def load_key():
     if os.path.exists("client_key.txt"):
         key_file = open("client_key.txt","r")
         client_key = key_file.read()
-        key_file.close*()
+        key_file.close()
     else: 
         client_key = None
     return client_key
 def get_key():
-    client_key = load_key
+    client_key = load_key()
     if not client_key:
         client_key = generate_random_key()
     return client_key
