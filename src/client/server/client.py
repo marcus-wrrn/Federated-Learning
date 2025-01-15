@@ -7,9 +7,10 @@ from flcore.data_handling.datasets import HARSDataset
 import argparse
 import time
 import os
+from config import TrainingConfig
 
 
-def download_model(server_url, client_id):
+def download_model(server_url: str, client_id: str):
     if not server_url.startswith('http://') and not server_url.startswith('https://'):
         server_url = 'http://' + server_url
     
@@ -76,9 +77,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--train_path", type=str, default="./train.csv")
     parser.add_argument("--server_url", type=str, default="http://localhost:8080")
-    parser.add_argument("--rounds", type=int, default=5)
     parser.add_argument("--cuda", type=str, default="y")
-    parser.add_argument("--client_id", type=int, required=True, help="Client ID")
     args = parser.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() and args.cuda.lower() == 'y' else "cpu")
@@ -106,3 +105,26 @@ if __name__ == '__main__':
 
         # Wait for the server to complete aggregation
         wait_for_aggregation(args.server_url)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--train_path", type=str, default="./train.csv")
+    parser.add_argument("--server_url", type=str, default="http://localhost:8080")
+    parser.add_argument("--instance_path", type=str, default="./instance", help="Directory for storing model data, if running on same machine, this value must be unique")
+    parser.add_argument("--cuda", type=str, default="y", help="Use Cuda: Y/n")
+    args = parser.parse_args()
+
+    cfg = TrainingConfig(
+        train_path = args.train_path, 
+        instance_path = args.instance_path,
+        host_ip = args.server_url,
+        cuda = True if args.cuda.lower() == 'y' else False,
+    )
+
+    if not os.path.exists(cfg.instance_path):
+        os.mkdir(cfg.instance_path)
+
+    
+
+
+

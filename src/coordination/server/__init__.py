@@ -23,11 +23,9 @@ def create_app(test_config=None):
     else:
         app.config.from_mapping(test_config)
 
-    # TBH not sure if we need this but could be useful for later
-    try:
+    # Load the directory that stores all important file data
+    if not os.path.exists(app.instance_path):
         os.makedirs(app.instance_path)
-    except OSError:
-        pass
 
     # Add routes to app
     from . import server
