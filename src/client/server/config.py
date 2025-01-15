@@ -28,19 +28,19 @@ class TrainingConfig:
         os.makedirs(self.instance_path, exist_ok=True)
         
         # Initialize client_id
-        self.client_id = kg.get_key(self._client_id_path)
+        self.client_id = kg.get_key(self.client_id_path)
 
         # Make sure the host ip is correct
         if not self.host_ip.startswith('http://') and not self.host_ip.startswith('https://'):
             self.host_ip = 'http://' + self.host_ip
 
     @property
-    def _client_id_path(self) -> str:
-        return self.instance_path + "/client_hash.txt"
+    def client_id_path(self) -> str:
+        return os.path.join(self.instance_path, "client_hash.txt")
     
     @property
     def model_path(self) -> str:
-        return self.instance_path + "/model.pth"
+        return os.path.join(self.instance_path, "model.pth")
     
     @property
     def wait_time(self) -> float:
