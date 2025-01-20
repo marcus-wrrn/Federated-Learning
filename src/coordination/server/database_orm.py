@@ -63,9 +63,32 @@ class CoordinationDB:
         self.conn.commit()
 
     def add_client(self, client_id: str, model_id: str | None, commit=True) -> None:
-        model_path = os.path.join(current_app.instance_path, f"client{client_id}.pth")
-        self.cursor.execute("INSERT INTO clients (client_id, model_path, round,ip_address) VALUES (?, ?, ?,?)", (client_id, model_path, current_round,ip_address))
+        if self.client_exists(client_id):
+            return None
+
+        if model_id is None:
+            self.cursor.execute("INSERT INTO clients (client_id) VALUES (?)", (client_id,))
+        else:
+            # Check if model_id exists in table
+            assert self.model_exists(model_id)
+            self.cursor.execute("INSERT INTO clients (client_id, model_id) VALUES (?, ?)", (client_id, model_id))
+
         if commit: self.conn.commit()
+    
+    def initialize_training(self,
+                            max_rounds: int,
+                            client_threshold: int,
+                            learning_rate=0.01):
+        self.cursor.execute("INSERT INTO train_round (max_rounds, client_threshold, learning_rate) VALUES (?, ?, ?)", (max_rounds, client_threshold, learning_rate,))
+        current_round_id = self.cursor.lastrowid
+
+        if self.current_round() is None:
+            self.cursor.execute("INSERT INTO training_config (round_id) VALUES (?)", (current_round_id,))
+        else:
+            self.cursor.execute("UPDATE training_config SET round_id = ? WHERE id = 1", (current_round_id,))
+        
+        self.conn.commit()
+
 
     def start_training_round(self, max_rounds: int, client_threshold: int):
         assert max_rounds > 0
@@ -80,6 +103,18 @@ class CoordinationDB:
         self.cursor.execute("SELECT 1 FROM clients WHERE client_id = ?", (client_id,))
         result = self.cursor.fetchone()
         return result is not None
+
+    def model_exists(self, model_id: str) -> bool:
+        self.cursor.execute("SELECT 1 FROM model WHERE model_id = ?", (model_id,))
+        result = self.cursor.fetchone()
+        return result is not None
+    
+    def current_round(self) -> int | None:
+        self.cursor.execute("SELECT round_id FROM training_config")
+        result = self.cursor.fetchone()
+        if result is not None:
+            return result[0]
+        return None
 
     def close(self):
         self.conn.close()
