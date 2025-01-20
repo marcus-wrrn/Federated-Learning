@@ -5,7 +5,7 @@ from flcore.models.basic import HARSModel
 import os
 import sqlite3
 from server.database_orm import CoordinationDB
-from server.utility import ClientResponse
+from coordination.server.data_classes import ClientResponse
 from dataclasses import asdict
 
 bp = Blueprint("training", __name__, url_prefix="/training")
@@ -87,9 +87,16 @@ def ping_server():
         client_resp = ClientResponse(data)
 
         with CoordinationDB(current_app.config["DATAPATH"]) as db:
-            if not db.client_exists(client_resp.key):
+            if not db.client_exists(client_resp.client_id):
+                db.add_client(client_resp.client_id, client_resp.model_id)
+            
+            # Get current round
+            current_round = db.get_current_round()
+
+            if current_round is None:
                 ...
-            ...
+            
+
         # Check if client has been initialized
         
         # Check if the 

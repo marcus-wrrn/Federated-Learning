@@ -1,7 +1,7 @@
 import sqlite3
 from flask import current_app
 import os
-from server.utility import TrainRound
+from coordination.server.data_classes import TrainRound, Client
 
 class CoordinationDB:
     """
@@ -36,6 +36,8 @@ class CoordinationDB:
             CREATE TABLE IF NOT EXISTS clients (
                 client_id TEXT PRIMARY KEY UNIQUE,
                 model_id TEXT,
+                current_state TEXT DEFAULT INITIALIZATION,
+                next_state TEXT DEFAULT IDLE,
                 FOREIGN KEY (model_id) REFERENCES model (model_id)
                     ON DELETE CASCADE ON UPDATE CASCADE
             );
@@ -63,18 +65,40 @@ class CoordinationDB:
 
         self.conn.commit()
 
-    def add_client(self, client_id: str, model_id: str | None, commit=True) -> None:
+    def add_client(self, client_id: str, model_id: str | None, current_state: str, next_state="IDLE", commit=True) -> None:
         if self.client_exists(client_id):
-            return None
+            raise Exception("Client already exists")
 
         if model_id is None:
-            self.cursor.execute("INSERT INTO clients (client_id) VALUES (?)", (client_id,))
+            self.cursor.execute("INSERT INTO clients (client_id, current_state, next_state) VALUES (?, ?, ?)", (client_id, current_state, next_state,))
         else:
             # Check if model_id exists in table
             assert self.model_exists(model_id)
-            self.cursor.execute("INSERT INTO clients (client_id, model_id) VALUES (?, ?)", (client_id, model_id))
+            self.cursor.execute("INSERT INTO clients (client_id, model_id, current_state, next_state) VALUES (?, ?, ?, ?)", (client_id, model_id, current_state, next_state))
 
         if commit: self.conn.commit()
+
+    def get_client(self, client_id: str) -> Client | None:
+        self.cursor.execute("SELECT * FROM clients WHERE client_id = ?", (client_id,))
+        result = self.cursor.fetchone()
+
+        if not result:
+            return None
+        
+        return Client(
+            client_id=result[0],
+            model_id=result[1],
+            current_state=result[2],
+            next_state=result[3]
+        )
+    
+    def update_client_model(self, client_id: str, model_id: str, commit=True):
+        if not self.model_exists(model_id) or not self.client_exists(client_id):
+            raise Exception("Model or Client does not exist")
+        
+        self.cursor.execute("UPDATE clients SET model_id = ? WHERE client_id = ?", (model_id, client_id,))
+        if commit: self.conn.commit()
+
     
     def initialize_training(self,
                             max_rounds: int,
@@ -125,7 +149,7 @@ class CoordinationDB:
             WHERE tc.id = 1
         """)
         result = self.cursor.fetchone()
-        
+
         if not result:
             return None
         
@@ -142,7 +166,8 @@ class CoordinationDB:
         self.conn.close()
 
     # These methods are for context management
-    # So the database can be called with 'with' similar to how other files are
+    # So the database can be called with 'with' similar to how python deals with files
+    # It means we do not have to worry about closing the database connection in case an error occurs
     def __enter__(self):
         return self
     
