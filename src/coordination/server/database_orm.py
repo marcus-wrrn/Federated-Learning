@@ -12,33 +12,57 @@ class CoordinationDB:
     """
     def __init__(self, db_path: str) -> None:
         self.conn = sqlite3.connect(db_path)
+        self.conn.execute('PRAGMA foreign_keys = ON;')
         self.cursor = self.conn.cursor()
         self._init_tables()
 
     def _init_tables(self):
+        # We have 4 tables, 
+        # 'model' which contains the model id and a reference to the training round its assosciated with,
+        # The training round which contains the training information for each round,
+        # clients, which contains client ids which reference the current model the client is assosciated with,
+        # training_config, which is a table with only one row, containing a reference to the current training round
+        self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS model (
+                model_id TEXT PRIMARY KEY, 
+                round_id INTEGER NOT NULL,
+                FOREIGN KEY (round_id) REFERENCES train_round (round_id)
+                    ON DELETE CASCADE ON UPDATE CASCADE
+            );
+        ''')
+
         self.cursor.execute('''
             CREATE TABLE IF NOT EXISTS clients (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                client_id TEXT UNIQUE,
-                model_path TEXT UNIQUE,
-                round INTEGER DEFAULT 0,
-                ip_address
+                client_id TEXT PRIMARY KEY UNIQUE,
+                model_id TEXT,
+                FOREIGN KEY (model_id) REFERENCES model (model_id)
+                    ON DELETE CASCADE ON UPDATE CASCADE
             );
         ''')
 
         self.cursor.execute('''
             CREATE TABLE IF NOT EXISTS train_round (
-                id INTEGER PRIMARY KEY,
-                max_rounds INTEGER,
+                round_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 current_round INTEGER DEFAULT 0,
-                client_threshold INTEGER,
-                is_aggregating BOOLEAN DEFAULT 0
+                max_rounds INTEGER NOT NULL,
+                client_threshold INTEGER NOT NULL,
+                learning_rate REAL DEFAULT 0.01,
+                is_aggregating INTEGER DEFAULT 0
+            );
+        ''')
+
+        self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS training_config (
+                id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1), -- ensures only one table can exist
+                round_id INTEGER NOT NULL UNIQUE,
+                FOREIGN KEY (round_id) REFERENCES train_round (round_id)
+                    ON DELETE CASCADE ON UPDATE CASCADE
             );
         ''')
 
         self.conn.commit()
 
-    def add_client(self, client_id: str, ip_address: str, current_round=0, commit=True) -> None:
+    def add_client(self, client_id: str, model_id: str | None, commit=True) -> None:
         model_path = os.path.join(current_app.instance_path, f"client{client_id}.pth")
         self.cursor.execute("INSERT INTO clients (client_id, model_path, round,ip_address) VALUES (?, ?, ?,?)", (client_id, model_path, current_round,ip_address))
         if commit: self.conn.commit()
@@ -52,6 +76,11 @@ class CoordinationDB:
         """, (max_rounds, 0, client_threshold, False))
         self.conn.commit()
 
+    def client_exists(self, client_id: str) -> bool:
+        self.cursor.execute("SELECT 1 FROM clients WHERE client_id = ?", (client_id,))
+        result = self.cursor.fetchone()
+        return result is not None
+
     def close(self):
         self.conn.close()
 
@@ -61,4 +90,4 @@ class CoordinationDB:
         return self
     
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.conn.close()
+        self.conn.close()   

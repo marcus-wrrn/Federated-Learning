@@ -4,15 +4,17 @@ import threading
 from flcore.models.basic import HARSModel
 import os
 import sqlite3
+from database_orm import CoordinationDB
+from utility import ClientResponse
 
 bp = Blueprint("training", __name__, url_prefix="/training")
 
-@bp.route('/get_model', methods=['GET'])
-def get_model():
-    path = current_app.config["GLOBAL_BIN_PATH"]
+@bp.route('/get_model/<model_id>', methods=['GET'])
+def get_model(model_id):
+    path = os.path.join(current_app.config["GLOBAL_BIN_PATH"], f"{model_id}.pth")
 
     if not os.path.exists(path):
-        return 500, "Model uninitialized"
+        return 404, "Model does not exist"
 
     return send_file(path)
 
@@ -76,6 +78,24 @@ def add_client():
 def is_aggregated():
     round_completed: threading.Event = current_app.config["ROUND_COMPLETED"]
     return jsonify({'aggregated': round_completed.is_set()})
+
+@bp.route('/ping', methods=['POST'])
+def ping_server():
+    data = request.data
+    try:
+        client_resp = ClientResponse(data)
+
+        with CoordinationDB(current_app.config["DATAPATH"]) as db:
+            if not db.client_exists(client_resp.key):
+                ...
+            ...
+        # Check if client has been initialized
+        
+        # Check if the 
+
+    except Exception as e:
+        return f"Error processing request: {e}", 500
+
 
 
 # TODO: Improve aggregation logic and move to seperate file
