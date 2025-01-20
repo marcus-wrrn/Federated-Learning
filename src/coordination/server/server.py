@@ -4,8 +4,9 @@ import threading
 from flcore.models.basic import HARSModel
 import os
 import sqlite3
-from database_orm import CoordinationDB
-from utility import ClientResponse
+from server.database_orm import CoordinationDB
+from server.utility import ClientResponse
+from dataclasses import asdict
 
 bp = Blueprint("training", __name__, url_prefix="/training")
 
@@ -60,7 +61,7 @@ def receive_update():
 
 @bp.route('/init_connection', methods=['POST'])
 def add_client():
-    client_key = request.data
+    client_key = request.get_json()
     # will do the number of clients here
     # check to see if the key and the ip are in use
     # store info in a db?
@@ -81,7 +82,7 @@ def is_aggregated():
 
 @bp.route('/ping', methods=['POST'])
 def ping_server():
-    data = request.data
+    data = request.get_json()
     try:
         client_resp = ClientResponse(data)
 
@@ -97,6 +98,27 @@ def ping_server():
         return f"Error processing request: {e}", 500
 
 
+@bp.route('/initialize', methods=['POST'])
+def init_training():
+    data = request.get_json()
+    try:
+        if "max_rounds" not in data or "client_threshold" not in data or "learning_rate" not in data:
+            raise Exception("Request missing required parameters")
+        
+        with CoordinationDB(current_app.config["DATAPATH"]) as db:
+            db.initialize_training(
+                max_rounds=data["max_rounds"], 
+                client_threshold=data["client_threshold"], 
+                learning_rate= data["learning_rate"]
+            )
+
+            round = db.get_current_round()
+        assert round is not None
+
+        return jsonify(asdict(round)), 200
+    except Exception as e:
+        return f"Error processing request: {e}", 500
+    
 
 # TODO: Improve aggregation logic and move to seperate file
 def aggregate_models(client_states: dict) -> dict:

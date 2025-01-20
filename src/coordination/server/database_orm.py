@@ -1,6 +1,7 @@
 import sqlite3
 from flask import current_app
 import os
+from server.utility import TrainRound
 
 class CoordinationDB:
     """
@@ -54,7 +55,7 @@ class CoordinationDB:
         self.cursor.execute('''
             CREATE TABLE IF NOT EXISTS training_config (
                 id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1), -- ensures only one table can exist
-                round_id INTEGER NOT NULL UNIQUE,
+                round_id INTEGER,
                 FOREIGN KEY (round_id) REFERENCES train_round (round_id)
                     ON DELETE CASCADE ON UPDATE CASCADE
             );
@@ -78,11 +79,11 @@ class CoordinationDB:
     def initialize_training(self,
                             max_rounds: int,
                             client_threshold: int,
-                            learning_rate=0.01):
+                            learning_rate: float):
         self.cursor.execute("INSERT INTO train_round (max_rounds, client_threshold, learning_rate) VALUES (?, ?, ?)", (max_rounds, client_threshold, learning_rate,))
         current_round_id = self.cursor.lastrowid
 
-        if self.current_round() is None:
+        if self.current_round_id() is None:
             self.cursor.execute("INSERT INTO training_config (round_id) VALUES (?)", (current_round_id,))
         else:
             self.cursor.execute("UPDATE training_config SET round_id = ? WHERE id = 1", (current_round_id,))
@@ -109,12 +110,33 @@ class CoordinationDB:
         result = self.cursor.fetchone()
         return result is not None
     
-    def current_round(self) -> int | None:
+    def current_round_id(self) -> int | None:
         self.cursor.execute("SELECT round_id FROM training_config")
         result = self.cursor.fetchone()
         if result is not None:
             return result[0]
         return None
+    
+    def get_current_round(self) -> TrainRound | None:
+        self.cursor.execute("""
+            SELECT tr.*
+            FROM train_round tr
+            JOIN training_config tc on tr.round_id = tc.round_id
+            WHERE tc.id = 1
+        """)
+        result = self.cursor.fetchone()
+        
+        if not result:
+            return None
+        
+        return TrainRound(
+            round_id=result[0],
+            current_round=result[1],
+            max_rounds=result[2],
+            client_threshold=result[3],
+            learning_rate=result[4],
+            is_aggregating=result[5]
+        )
 
     def close(self):
         self.conn.close()
