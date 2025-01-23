@@ -21,7 +21,8 @@ class CoordinationDB:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 client_id TEXT UNIQUE,
                 model_path TEXT UNIQUE,
-                round INTEGER DEFAULT 0
+                round INTEGER DEFAULT 0,
+                ip_address
             );
         ''')
 
@@ -37,9 +38,9 @@ class CoordinationDB:
 
         self.conn.commit()
 
-    def add_client(self, client_id: str, current_round=0, commit=True) -> None:
+    def add_client(self, client_id: str, ip_address: str, current_round=0, commit=True) -> None:
         model_path = os.path.join(current_app.instance_path, f"client{client_id}.pth")
-        self.cursor.execute("INSERT INTO clients (client_id, model_path, round) VALUES (?, ?, ?)", (client_id, model_path, current_round))
+        self.cursor.execute("INSERT INTO clients (client_id, model_path, round,ip_address) VALUES (?, ?, ?,?)", (client_id, model_path, current_round,ip_address))
         if commit: self.conn.commit()
 
     def start_training_round(self, max_rounds: int, client_threshold: int):
