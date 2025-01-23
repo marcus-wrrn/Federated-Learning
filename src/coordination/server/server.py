@@ -5,7 +5,7 @@ from flcore.models.basic import HARSModel
 import os
 import sqlite3
 from server.database_orm import CoordinationDB
-from coordination.server.data_classes import ClientResponse
+from server.data_classes import ClientResponse
 from dataclasses import asdict
 
 bp = Blueprint("training", __name__, url_prefix="/training")
@@ -112,6 +112,9 @@ def init_training():
         if "max_rounds" not in data or "client_threshold" not in data or "learning_rate" not in data:
             raise Exception("Request missing required parameters")
         
+        # Generate new model with new model ID
+        model = HARSModel('cpu')
+        
         with CoordinationDB(current_app.config["DATAPATH"]) as db:
             db.initialize_training(
                 max_rounds=data["max_rounds"], 
@@ -120,7 +123,11 @@ def init_training():
             )
 
             round = db.get_current_round()
-        assert round is not None
+        
+        # create model
+
+        if round is None:
+            raise Exception("Round is none")
 
         return jsonify(asdict(round)), 200
     except Exception as e:

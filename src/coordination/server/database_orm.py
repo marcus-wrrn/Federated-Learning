@@ -1,7 +1,26 @@
 import sqlite3
 from flask import current_app
 import os
-from coordination.server.data_classes import TrainRound, Client
+from server.data_classes import TrainRound, Client
+import datetime
+import random
+import hashlib
+import string
+
+def generate_random_key() -> str:
+    now = datetime.datetime.now()
+    strdate = now.isoformat()
+    rand_key = ''
+    characters = string.ascii_letters + string.digits
+    rand_key = rand_key.join(random.choices(characters, k=random.randint(0, len(characters) - 1)))
+    key = rand_key + strdate
+    key = key.encode()
+    hash =  hashlib.md5(key).hexdigest()
+
+    # with open("client_key.txt", "w") as key_file:
+    #     key_file.write(hash)
+    
+    return hash
 
 class CoordinationDB:
     """
@@ -104,6 +123,8 @@ class CoordinationDB:
                             max_rounds: int,
                             client_threshold: int,
                             learning_rate: float):
+        if not (max_rounds > 0 and client_threshold > 0):
+            raise Exception(f"Max Rounds and Client Threshold must be above 0 got: max rounds: {max_rounds}, client threshold: {client_threshold}")
         self.cursor.execute("INSERT INTO train_round (max_rounds, client_threshold, learning_rate) VALUES (?, ?, ?)", (max_rounds, client_threshold, learning_rate,))
         current_round_id = self.cursor.lastrowid
 
@@ -114,15 +135,32 @@ class CoordinationDB:
         
         self.conn.commit()
 
+    def create_model(self, round_id: int, commit=True) -> str:
+        model_id = generate_random_key() 
+        # Keep generating a new model ID until a new key is generated
+        while not self.model_exists(model_id):
+            model_id = generate_random_key()
+        self.cursor.execute("INSERT INTO model (model_id, round_id) VALUES (?, ?)", (model_id, round_id))
+        if commit: self.conn.commit()
 
-    def start_training_round(self, max_rounds: int, client_threshold: int):
-        assert max_rounds > 0
-        assert client_threshold > 0
+        return model_id
 
-        self.cursor.execute("""
-            INSERT INTO train_round (max_rounds, current_round, client_threshold, is_aggregating) VALUES (?, ?, ?, ?)
-        """, (max_rounds, 0, client_threshold, False))
-        self.conn.commit()
+
+    
+    def model_exists(self, model_id: str) -> bool:
+        self.cursor.execute("SELECT 1 FROM model WHERE model_id = ?", (model_id,))
+        result = self.cursor.fetchone()
+        return result is not None
+
+
+    # def start_training_round(self, max_rounds: int, client_threshold: int):
+    #     assert max_rounds > 0
+    #     assert client_threshold > 0
+
+    #     self.cursor.execute("""
+    #         INSERT INTO train_round (max_rounds, current_round, client_threshold, is_aggregating) VALUES (?, ?, ?, ?)
+    #     """, (max_rounds, 0, client_threshold, False))
+    #     self.conn.commit()
 
     def client_exists(self, client_id: str) -> bool:
         self.cursor.execute("SELECT 1 FROM clients WHERE client_id = ?", (client_id,))
