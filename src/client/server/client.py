@@ -71,7 +71,41 @@ def wait_for_aggregation(server_url):
             break
         time.sleep(1)  # Wait before checking again
 
+def generate_random_key():
+    now = datetime.datetime.now()
+    strdate = now.isoformat()
+    rand_key = ''
+    characters = string.ascii_letters + string.digits
+    length = 64-26
+    rand_key = rand_key.join(random.choices(characters,k = length))
+    key = rand_key + strdate
+    key = key.encode()
+    hash =  hashlib.md5(key).hexdigest()
+    key_file = open("client_key.txt","w")
+    key_file.write(hash)
+    key_file.close()
+    return hash
 
+def upload_key(server_url):
+    if not server_url.startswith('http://') and not server_url.startswith('https://'):
+        server_url = 'http://' + server_url
+    client_key = get_key()
+    response = requests.post(f'{server_url}/init_connection', data=client_key)
+
+def load_key():
+    #locations for where more security could be added as the clientkey is currently stored as text file 
+    if os.path.exists("client_key.txt"):
+        key_file = open("client_key.txt","r")
+        client_key = key_file.read()
+        key_file.close()
+    else: 
+        client_key = None
+    return client_key
+def get_key():
+    client_key = load_key()
+    if not client_key:
+        client_key = generate_random_key()
+    return client_key
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

@@ -68,6 +68,7 @@ def add_client():
     # need to get client list
     client_list = []
     ip_address = request.remote_addr
+    print(f"Following device has been connected : ip address : {ip_address}, client_key {client_key}")    
     db = sqlite3.connect(current_app.config["DATAPATH"])
     max_id = db.execute("SELECT MAX(id) FROM clients")
     existing_client = db.execute("SELECT * FROM clients WHERE ip_address = ? AND client_id = ?",(ip_address,client_key)).fetchone
@@ -133,6 +134,12 @@ def init_training():
     except Exception as e:
         return f"Error processing request: {e}", 500
     
+@bp.route('/connect_test',methods=['POST','GET'])
+def connected():
+    print("The following device has connected to the network : "+request.remote_addr)
+    print("End message")
+    return"<p> YOU ARE CONNECTED ! <p>"
+
 
 # TODO: Improve aggregation logic and move to seperate file
 def aggregate_models(client_states: dict) -> dict:
