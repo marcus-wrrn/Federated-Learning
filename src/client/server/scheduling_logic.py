@@ -1,14 +1,18 @@
 import threading
 import requests
 from config import TrainingConfig, Hyperparameters, CoordinationServerResponse, ClientState
+import torch
+from flcore.models.basic import HARSModel
 
-def initialize_client(cfg: TrainingConfig) -> CoordinationServerResponse:
+def communicate_with_server(cfg: TrainingConfig) -> CoordinationServerResponse:
     data = {
-        "key": cfg.client_id,
+        "client_id": cfg.client_id,
         "state": cfg.current_state,
         "model_id": cfg.model_id,
     }
-    response = requests.post(cfg.host_ip, data)
+
+    route = cfg.host_ip + "/training/ping"
+    response = requests.post(route, data)
     response.raise_for_status()
 
     json_data = response.json()
@@ -22,7 +26,6 @@ def initialize_client(cfg: TrainingConfig) -> CoordinationServerResponse:
     return CoordinationServerResponse(**json_data)
 
 def get_new_model(server_address: str, model_id: str) -> requests.Response:
-
     route = server_address + f"/get_model/{model_id}"
     response = requests.get(route)
     response.raise_for_status()
@@ -37,7 +40,7 @@ def cast_string_client_state(enum_class, value):
 
 def coordinate_with_server(config: TrainingConfig):
     try:
-        response = initialize_client(config)
+        response = communicate_with_server(config)
         if response.client_id != config.client_id:
             # change client id
             with open(config.client_id_path, "w") as fp:
@@ -58,8 +61,11 @@ def coordinate_with_server(config: TrainingConfig):
 
         # If in training mode start training
         if config.current_state == ClientState.TRAIN:
-            # train_model(config, hyperparameters)
-            ...
+            device = torch.device("cuda" if torch.cuda.is_available() and config.cuda else "cpu")
+            model = HARSModel(device)
+            model.load_state_dict(torch.load(config.model_path, weights_only=True))
+            
+        
     except Exception as e:
         print(f"Failed to ping coordination server: {e}")
     finally:
