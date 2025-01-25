@@ -17,8 +17,8 @@ class TrainingConfig:
     instance_path: str
     cuda: bool
     host_ip: str
-    init_time: 15.0
-    idle_time: 30.0
+    init_time = 15.0
+    idle_time = 30.0
     model_id = None
     client_id = None
     current_state = ClientState.INITIALIZATION

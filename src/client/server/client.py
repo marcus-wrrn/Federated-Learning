@@ -8,6 +8,7 @@ import argparse
 import time
 import os
 from config import TrainingConfig
+from scheduling_logic import start_scheduler
 
 
 def download_model(server_url: str, client_id: str):
@@ -107,38 +108,38 @@ def get_key():
         client_key = generate_random_key()
     return client_key
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--train_path", type=str, default="./train.csv")
-    parser.add_argument("--server_url", type=str, default="http://localhost:8080")
-    parser.add_argument("--cuda", type=str, default="y")
-    args = parser.parse_args()
+# if __name__ == '__main__':
+#     parser = argparse.ArgumentParser()
+#     parser.add_argument("--train_path", type=str, default="./train.csv")
+#     parser.add_argument("--server_url", type=str, default="http://localhost:8080")
+#     parser.add_argument("--cuda", type=str, default="y")
+#     args = parser.parse_args()
 
-    device = torch.device("cuda" if torch.cuda.is_available() and args.cuda.lower() == 'y' else "cpu")
+#     device = torch.device("cuda" if torch.cuda.is_available() and args.cuda.lower() == 'y' else "cpu")
 
-    # Load data
-    train_data = HARSDataset(args.train_path)
-    train_loader = DataLoader(train_data, batch_size=5, shuffle=True)
+#     # Load data
+#     train_data = HARSDataset(args.train_path)
+#     train_loader = DataLoader(train_data, batch_size=5, shuffle=True)
 
-    # Initialize model
-    model = HARSModel(device=device)
+#     # Initialize model
+#     model = HARSModel(device=device)
 
-    for rnd in range(args.rounds):
-        print(f"Client {args.client_id} - Round {rnd+1}")
+#     for rnd in range(args.rounds):
+#         print(f"Client {args.client_id} - Round {rnd+1}")
 
-        # Download the global model
-        global_state = download_model(args.server_url, args.client_id)
-        model.load_state_dict(global_state)
+#         # Download the global model
+#         global_state = download_model(args.server_url, args.client_id)
+#         model.load_state_dict(global_state)
 
-        # Train locally
-        local_state = train(model, train_loader, device)
+#         # Train locally
+#         local_state = train(model, train_loader, device)
 
-        # Upload the updated model
-        response = upload_model(args.server_url, local_state, args.client_id)
-        print(response.text)
+#         # Upload the updated model
+#         response = upload_model(args.server_url, local_state, args.client_id)
+#         print(response.text)
 
-        # Wait for the server to complete aggregation
-        wait_for_aggregation(args.server_url)
+#         # Wait for the server to complete aggregation
+#         wait_for_aggregation(args.server_url)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -157,6 +158,8 @@ if __name__ == "__main__":
 
     if not os.path.exists(cfg.instance_path):
         os.mkdir(cfg.instance_path)
+    
+    start_scheduler(cfg)
 
     
 

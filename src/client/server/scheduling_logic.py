@@ -5,16 +5,17 @@ import torch
 from torch.utils.data import DataLoader
 from flcore.models.basic import HARSModel
 from flcore.data_handling.datasets import HARSDataset
+#import json
 
 def communicate_with_server(cfg: TrainingConfig) -> CoordinationServerResponse:
     data = {
         "client_id": cfg.client_id,
-        "state": cfg.current_state,
+        "state": cfg.current_state.value,
         "model_id": cfg.model_id,
     }
 
     route = cfg.host_ip + "/training/ping"
-    response = requests.post(route, data)
+    response = requests.post(route, json=data)
     response.raise_for_status()
 
     json_data = response.json()
