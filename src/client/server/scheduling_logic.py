@@ -29,7 +29,8 @@ def communicate_with_server(cfg: TrainingConfig) -> CoordinationServerResponse:
     return CoordinationServerResponse(**json_data)
 
 def get_new_model(server_address: str, model_id: str) -> requests.Response:
-    route = server_address + f"/get_model/{model_id}"
+    route = server_address + f"/training/get_model/{model_id}"
+    print("Retrieving new model")
     response = requests.get(route)
     response.raise_for_status()
 

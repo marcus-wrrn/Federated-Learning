@@ -85,14 +85,18 @@ class CoordinationDB:
         self.conn.commit()
 
     def add_client(self, client_id: str, model_id: str | None, current_state: str, next_state="IDLE", commit=True) -> None:
+        print("Hello")
         if self.client_exists(client_id):
             raise Exception("Client already exists")
-
+        print("What?")
         if model_id is None:
+            print("Got here")
             self.cursor.execute("INSERT INTO clients (client_id, current_state, next_state) VALUES (?, ?, ?)", (client_id, current_state, next_state,))
         else:
+            print("It actually got here")
             # Check if model_id exists in table
-            assert self.model_exists(model_id)
+            if not self.model_exists(model_id):
+                raise Exception("Model does not exist in database")
             self.cursor.execute("INSERT INTO clients (client_id, model_id, current_state, next_state) VALUES (?, ?, ?, ?)", (client_id, model_id, current_state, next_state))
 
         if commit: self.conn.commit()
@@ -156,6 +160,19 @@ class CoordinationDB:
         result = self.cursor.fetchone()
         return result is not None
 
+    def get_model_id(self, round_id: int) -> str | None:
+        self.cursor.execute("SELECT model_id FROM model WHERE round_id = ?", (round_id,))
+        model_id = self.cursor.fetchone()
+        if model_id:
+            return model_id[0]
+        return None
+    
+    def get_model_path(self, instance_path: str, model_id: str) -> str | None:
+        self.cursor.execute("SELECT round_id FROM model WHERE model_id = ?", (model_id,))
+        round_id = self.cursor.fetchone()
+        if round_id:
+            return os.path.join(instance_path, f"training_round_{round_id[0]}/{model_id}.pth")
+        return None
 
     # def start_training_round(self, max_rounds: int, client_threshold: int):
     #     assert max_rounds > 0

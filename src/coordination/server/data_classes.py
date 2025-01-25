@@ -1,12 +1,18 @@
 from dataclasses import dataclass
-
+from enum import Enum
+class ClientState(Enum):
+    INITIALIZATION = "INITIALIZATION"
+    IDLE = "IDLE"
+    TRAIN = "TRAIN"
+    TEARDOWN = "TEARDOWN"
 @dataclass
-class ClientResponse:
+class ClientRequest:
     def __init__(self, client_data):
-        assert "key" in client_data and "state" in client_data and "model_id" in client_data
+        if not ("client_id" in client_data and "state" in client_data and "model_id" in client_data):
+            raise Exception("Client Response is missing neccessary components")
         
-        self.client_id = client_data["key"]
-        self.state = client_data["state"]
+        self.client_id = client_data["client_id"]
+        self.state = ClientState(client_data["state"])
         self.model_id = client_data["model_id"]
 
 @dataclass
@@ -31,10 +37,9 @@ class Client:
 
 @dataclass
 class CoordinationResponse:
-    def __init__(self, client: Client, train_round: TrainRound):
-        self.client_id = client.client_id
-        self.model_id = client.model_id
-        self.next_state = client.next_state
-        self.hyperparameters = ...
+    client_id: str
+    model_id: str
+    next_state: str
+    hyperparameters: Hyperparameters | None
 
 

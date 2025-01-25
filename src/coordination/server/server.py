@@ -5,19 +5,30 @@ from flcore.models.basic import HARSModel
 import os
 import sqlite3
 from server.database_orm import CoordinationDB
-from server.data_classes import ClientResponse
+from server.data_classes import ClientRequest, CoordinationResponse
 from dataclasses import asdict
 
 bp = Blueprint("training", __name__, url_prefix="/training")
 
 @bp.route('/get_model/<model_id>', methods=['GET'])
 def get_model(model_id):
-    path = os.path.join(current_app.config["GLOBAL_BIN_PATH"], f"{model_id}.pth")
+    with CoordinationDB(current_app.config["DATAPATH"]) as db:
 
-    if not os.path.exists(path):
-        return 404, "Model does not exist"
+        path = db.get_model_path(current_app.instance_path, model_id)
+        print(path)
+        if not path:
+            return "Model does not exist", 404
+        if not os.path.exists(path):
+            return "Model has been deleted", 500
 
     return send_file(path)
+
+@bp.route('/display_models', methods=['GET'])
+def display():
+    with CoordinationDB(current_app.config["DATAPATH"]) as db:
+        db.cursor.execute("SELECT * FROM model")
+        results = db.cursor.fetchall()
+        return results, 200
 
 @bp.route('/send_update', methods=['POST'])
 def receive_update():
@@ -85,23 +96,35 @@ def is_aggregated():
 def ping_server():
     data = request.get_json()
     try:
-        client_resp = ClientResponse(data)
-
+        client_resp = ClientRequest(data)
         with CoordinationDB(current_app.config["DATAPATH"]) as db:
             if not db.client_exists(client_resp.client_id):
-                db.add_client(client_resp.client_id, client_resp.model_id)
+                db.add_client(client_resp.client_id, client_resp.model_id, client_resp.state.value)
             
             # Get current round
             current_round = db.get_current_round()
-
+            # If current round is none do not update the client script
             if current_round is None:
-                ...
-            
+                client = db.get_client(client_resp.client_id)
+                response = CoordinationResponse(client)
+                return jsonify(asdict(response)), 200
+            # Else get current model
+            model_id = db.get_model_id(current_round.round_id)
+            if model_id != client_resp.model_id:
+                db.update_client_model(client_resp.client_id, model_id)
 
-        # Check if client has been initialized
-        
-        # Check if the 
+            client = db.get_client(client_resp.client_id)
+            print(asdict(client))
+            response = CoordinationResponse(
+                client_id=client.client_id,
+                model_id=client.model_id,
+                next_state=client.next_state,
+                hyperparameters=None
+            ) 
 
+        print(asdict(response))
+        return jsonify(asdict(response)), 200
+    
     except Exception as e:
         return f"Error processing request: {e}", 500
 
@@ -126,14 +149,12 @@ def init_training():
             round = db.get_current_round()
             if round is None:
                 raise Exception("Round is none")
-            print("Creating model")
+            
             model = HARSModel("cpu")
-            print("Adding to database")
             model_id = db.create_model(round.round_id)
+
             # create round directory and current model
-        print("Creating path")
         path = os.path.join(current_app.instance_path, f"training_round_{round.round_id}/{model_id}.pth")
-        print("Hello World")
         torch.save(model.state_dict(), path)
 
         return jsonify(asdict(round)), 200
