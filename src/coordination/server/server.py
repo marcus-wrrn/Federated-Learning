@@ -113,22 +113,28 @@ def init_training():
         if "max_rounds" not in data or "client_threshold" not in data or "learning_rate" not in data:
             raise Exception("Request missing required parameters")
         
-        # Generate new model with new model ID
-        model = HARSModel('cpu')
-        
+        print("Initialization Started")
         with CoordinationDB(current_app.config["DATAPATH"]) as db:
             db.initialize_training(
+                instance_path=current_app.instance_path,
                 max_rounds=data["max_rounds"], 
                 client_threshold=data["client_threshold"], 
                 learning_rate= data["learning_rate"]
             )
+            print("Round initialized")
 
             round = db.get_current_round()
-        
-        # create model
-
-        if round is None:
-            raise Exception("Round is none")
+            if round is None:
+                raise Exception("Round is none")
+            print("Creating model")
+            model = HARSModel("cpu")
+            print("Adding to database")
+            model_id = db.create_model(round.round_id)
+            # create round directory and current model
+        print("Creating path")
+        path = os.path.join(current_app.instance_path, f"training_round_{round.round_id}/{model_id}.pth")
+        print("Hello World")
+        torch.save(model.state_dict(), path)
 
         return jsonify(asdict(round)), 200
     except Exception as e:

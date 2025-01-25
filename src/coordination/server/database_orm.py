@@ -120,6 +120,7 @@ class CoordinationDB:
 
     
     def initialize_training(self,
+                            instance_path: str,
                             max_rounds: int,
                             client_threshold: int,
                             learning_rate: float):
@@ -135,17 +136,20 @@ class CoordinationDB:
         
         self.conn.commit()
 
+        # Create round directory
+        path = os.path.join(instance_path, f"training_round_{current_round_id}")
+        os.makedirs(path)
+
     def create_model(self, round_id: int, commit=True) -> str:
+        """Returns model ID"""
         model_id = generate_random_key() 
         # Keep generating a new model ID until a new key is generated
-        while not self.model_exists(model_id):
+        while self.model_exists(model_id):
             model_id = generate_random_key()
         self.cursor.execute("INSERT INTO model (model_id, round_id) VALUES (?, ?)", (model_id, round_id))
         if commit: self.conn.commit()
 
         return model_id
-
-
     
     def model_exists(self, model_id: str) -> bool:
         self.cursor.execute("SELECT 1 FROM model WHERE model_id = ?", (model_id,))
@@ -164,11 +168,6 @@ class CoordinationDB:
 
     def client_exists(self, client_id: str) -> bool:
         self.cursor.execute("SELECT 1 FROM clients WHERE client_id = ?", (client_id,))
-        result = self.cursor.fetchone()
-        return result is not None
-
-    def model_exists(self, model_id: str) -> bool:
-        self.cursor.execute("SELECT 1 FROM model WHERE model_id = ?", (model_id,))
         result = self.cursor.fetchone()
         return result is not None
     
