@@ -2,7 +2,9 @@ import threading
 import requests
 from config import TrainingConfig, Hyperparameters, CoordinationServerResponse, ClientState
 import torch
+from torch.utils.data import DataLoader
 from flcore.models.basic import HARSModel
+from flcore.data_handling.datasets import HARSDataset
 
 def communicate_with_server(cfg: TrainingConfig) -> CoordinationServerResponse:
     data = {
@@ -55,8 +57,7 @@ def coordinate_with_server(config: TrainingConfig):
                 fp.write(model_resp.content)
         
         # cast response state to Enum
-        current_state = cast_string_client_state(ClientState, response.next_state)
-        assert current_state != None
+        current_state = ClientState(response.next_state)
         config.current_state = current_state
 
         # If in training mode start training
@@ -64,7 +65,11 @@ def coordinate_with_server(config: TrainingConfig):
             device = torch.device("cuda" if torch.cuda.is_available() and config.cuda else "cpu")
             model = HARSModel(device)
             model.load_state_dict(torch.load(config.model_path, weights_only=True))
-            
+            optimizer = torch.optim.AdamW(model.parameters(), response.hyperparameters.learning_rate)
+            dataloader = DataLoader(HARSDataset(config.train_path), batch_size=1, shuffle=True)
+            model.fit(dataloader, optimizer, train=True)
+
+            # Send model file back to server
         
     except Exception as e:
         print(f"Failed to ping coordination server: {e}")
