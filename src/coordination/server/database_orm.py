@@ -1,7 +1,7 @@
 import sqlite3
 from flask import current_app
 import os
-from server.data_classes import TrainRound, Client
+from server.data_classes import TrainRound, Client, ClientState
 import datetime
 import random
 import hashlib
@@ -55,8 +55,7 @@ class CoordinationDB:
             CREATE TABLE IF NOT EXISTS clients (
                 client_id TEXT PRIMARY KEY UNIQUE,
                 model_id TEXT,
-                current_state TEXT DEFAULT INITIALIZATION,
-                next_state TEXT DEFAULT IDLE,
+                state TEXT DEFAULT INITIALIZATION,
                 FOREIGN KEY (model_id) REFERENCES model (model_id)
                     ON DELETE CASCADE ON UPDATE CASCADE
             );
@@ -85,15 +84,11 @@ class CoordinationDB:
         self.conn.commit()
 
     def add_client(self, client_id: str, model_id: str | None, current_state: str, next_state="IDLE", commit=True) -> None:
-        print("Hello")
         if self.client_exists(client_id):
             raise Exception("Client already exists")
-        print("What?")
         if model_id is None:
-            print("Got here")
             self.cursor.execute("INSERT INTO clients (client_id, current_state, next_state) VALUES (?, ?, ?)", (client_id, current_state, next_state,))
         else:
-            print("It actually got here")
             # Check if model_id exists in table
             if not self.model_exists(model_id):
                 raise Exception("Model does not exist in database")
@@ -122,7 +117,6 @@ class CoordinationDB:
         self.cursor.execute("UPDATE clients SET model_id = ? WHERE client_id = ?", (model_id, client_id,))
         if commit: self.conn.commit()
 
-    
     def initialize_training(self,
                             instance_path: str,
                             max_rounds: int,

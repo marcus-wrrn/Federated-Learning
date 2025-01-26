@@ -40,3 +40,14 @@ pip install ./dist/flcore-0.0.2-py3-none-any.whl
     Note: The core model logic is packaged as a standalone module for modularity and reusability. 
     After installation you should be able to use flcore as a standalone python package. 
 python main.py
+
+
+### Run Coordination Server
+
+make sure you are in the `./src/coordination` directory in the terminal. 
+
+Run 
+
+`flask --app server`
+
+to start the development server. Use the `--debug` flag to enable debugging

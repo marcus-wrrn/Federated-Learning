@@ -5,7 +5,7 @@ from flcore.models.basic import HARSModel
 import os
 import sqlite3
 from server.database_orm import CoordinationDB
-from server.data_classes import ClientRequest, CoordinationResponse
+from server.data_classes import ClientRequest, CoordinationResponse, ClientState
 from dataclasses import asdict
 
 bp = Blueprint("training", __name__, url_prefix="/training")
@@ -30,68 +30,6 @@ def display():
         results = db.cursor.fetchall()
         return results, 200
 
-@bp.route('/send_update', methods=['POST'])
-def receive_update():
-    client_updates: list = current_app.config["CLIENT_UPDATES"]
-    num_clients: int = current_app.config["NUM_CLIENTS"]
-    global_model: HARSModel = current_app.config["GLOBAL_MODEL"]
-    round_completed: threading.Event = current_app.config["ROUND_COMPLETED"]
-
-    # Receive updated model parameters from client
-    client_id = request.args.get('client_id', 'Unknown')
-    client_state = request.data
-
-    # Saving then loading from a file is not neccessary we can just save the data to the client updates directly
-    # with open(f'client_model_{client_id}.pt', 'wb') as f:
-    #     f.write(update)
-    # client_state = torch.load(f'client_model_{client_id}.pt', map_location='cpu', weights_only=True)
-    client_updates.append((client_state, client_id))
-    
-    print(f"Received update from client {client_id}")
-
-    # If not currently aggregating 
-    if len(client_updates) == num_clients and not round_completed.is_set():
-        round_completed.set()
-        # Aggregate updates
-        states = [cs[0] for cs in client_updates]
-        global_model_state = aggregate_models(states)
-        
-        global_model = HARSModel(device='cpu').load_state_dict(global_model_state)
-        global_binary = global_model.export_binary()
-
-        # Overwrite the global binary
-        with open(current_app.config["GLOBAL_BIN_PATH"], "wb") as fp:
-            fp.write(global_binary)
-
-        current_app.config["CLIENT_UPDATES"] = []
-        current_app.config["CURRENT_ROUND"] += 1
-
-        round_completed.clear()
-        
-    return 'Update received', 200
-
-@bp.route('/init_connection', methods=['POST'])
-def add_client():
-    client_key = request.get_json()
-    # will do the number of clients here
-    # check to see if the key and the ip are in use
-    # store info in a db?
-    # need to get client list
-    client_list = []
-    ip_address = request.remote_addr
-    print(f"Following device has been connected : ip address : {ip_address}, client_key {client_key}")    
-    db = sqlite3.connect(current_app.config["DATAPATH"])
-    max_id = db.execute("SELECT MAX(id) FROM clients")
-    existing_client = db.execute("SELECT * FROM clients WHERE ip_address = ? AND client_id = ?",(ip_address,client_key)).fetchone
-    if not existing_client:
-        db.add_client(client_key,ip_address)
-        current_app.config["NUM_CLIENTS"] = current_app.config["NUM_CLIENTS"] + 1 # add 1 to the number of clients # might be able to calculate this number from the database 
-
-@bp.route('/is_aggregated', methods=['GET'])
-def is_aggregated():
-    round_completed: threading.Event = current_app.config["ROUND_COMPLETED"]
-    return jsonify({'aggregated': round_completed.is_set()})
-
 @bp.route('/ping', methods=['POST'])
 def ping_server():
     data = request.get_json()
@@ -103,18 +41,24 @@ def ping_server():
             
             # Get current round
             current_round = db.get_current_round()
-            # If current round is none do not update the client script
+            # If current round is none or the model is currently aggregating do not update the client script
             if current_round is None:
                 client = db.get_client(client_resp.client_id)
                 response = CoordinationResponse(client)
                 return jsonify(asdict(response)), 200
+            
+            # If the system is aggregating and the client state is not idle, or if the client is initializing set the client to idle
+            if (client_resp.state != ClientState.IDLE and current_round.is_aggregating) or client_resp.state == ClientState.INITIALIZATION:
+                db.cursor.execute("UPDATE clients SET state = ? WHERE client_id = ?", (ClientState.IDLE.value, client_resp.client_id))
+                db.conn.commit()
+
             # Else get current model
             model_id = db.get_model_id(current_round.round_id)
             if model_id != client_resp.model_id:
                 db.update_client_model(client_resp.client_id, model_id)
 
             client = db.get_client(client_resp.client_id)
-            print(asdict(client))
+
             response = CoordinationResponse(
                 client_id=client.client_id,
                 model_id=client.model_id,
@@ -122,7 +66,6 @@ def ping_server():
                 hyperparameters=None
             ) 
 
-        print(asdict(response))
         return jsonify(asdict(response)), 200
     
     except Exception as e:
@@ -131,6 +74,9 @@ def ping_server():
 
 @bp.route('/initialize', methods=['POST'])
 def init_training():
+    """
+    Route for initializing a training session.
+    """
     data = request.get_json()
     try:
         if "max_rounds" not in data or "client_threshold" not in data or "learning_rate" not in data:
