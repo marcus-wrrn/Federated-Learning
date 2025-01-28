@@ -8,7 +8,7 @@ from flcore.data_handling.datasets import HARSDataset
 import os
 import numpy as np
 import torch.utils.data.dataloader
-#from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix
 
 def validation(device,data_path='',model='',batchsize=5):
     print("Running validation ...")
@@ -34,6 +34,10 @@ def validation(device,data_path='',model='',batchsize=5):
 
     total_correct = 0
     total_test =0
+    tp= [0]*len(val_set.class_list)
+    fp= [0]*len(val_set.class_list)
+    fn= [0]*len(val_set.class_list)
+    tn = [0]*len(val_set.class_list)
     for data in val_loader:
         temp = data[0]
         label = data[1]
@@ -47,29 +51,144 @@ def validation(device,data_path='',model='',batchsize=5):
         label_np = np.array(label.argmax(1).tolist())
         total_correct = total_correct+ (pred_np == label_np).sum().item()
         total_test =total_test+  len(label)
+        tp,fp,fn,tn = get_model_true_false(pred_label,label_np,val_set.class_list,tp,fp,fn,tn)
 
     model_accuracy = total_correct/total_test 
-    #print(total_test)
-    #print(len(val_set))
     print(model_accuracy)
+
         
 
     
-def get_model_true_false(pred,truth,class_list):
-    tp =[]
-    fp = []
-    fn =[]
-    tn = []
+def get_tpr_fpr(recall=0,tp=0,tn=0,fp=0,fn=0,ground_truth=[],pred_label=[],class_list=[]):    
+    if(not ground_truth and not pred_label and not class_list and recall  ==0 and tp ==0 and tn ==0 and fp == 0 and fn ==0):
+        tp =[]
+        fp =[]
+        tn=[]
+        fn = []
+        tp,fp,fn,tn = get_model_true_false(pred_label,label_np,val_set.class_list,tp,fp,fn,tn)
+    if(recall == 0 and tp != 0 and tn != 0 and fp != 0 and fn != 0):
+        tpr = tp/tp+fn 
+    else:
+        trp = recall
+
+    fpr = fp/(fp+tn)
+    return tpr,fpr
+
+def get_recall(tp,fn):
+    recall = [0] * len(tp)
+    for i in range(0,len(tp)):
+        recall[i] = tp[i]/(tp[i]+fn[i])
+    macro_recall = sum(recall)/len(recall)
+    return recall,macro_recall
+
+def micro_recall(tp,fn):
+    recall = tp/(tp+fn)
+    return recall
+
+def weighted_recall(class_recall,weight):
+    weighted_val = [0] * len(class_recall)
+    for i in range(0,len(class_recall)):
+        weighted_val[i] = class_recall[i] * weight[i]
+    recall = sum(weighted_val)/sum(weight)
+    return recall
+
+def get_macro_precision(tp,fp):
+    precision = [0] * len(tp)
+    for i in range(0,len(tp)):
+        precision[i] = tp[i]/(tp[i]+fp[i])
+    macro_precision = sum(precision)/len(precision)
+    return precision,macro_precision
+
+def micro_precision(tp,fp):
+    return tp/(tp+fp)
+
+def weighted_precision(class_precision,weight):
+    weighted_val = [0] * len(class_precision)
+    for i in range(0,len(class_precision)):
+        weighted_val[i] = class_precision[i] * weight[i]
+    precision = sum(weighted_val)/sum(weight)
+    return precision
+
+def macro_f1(precision,recall):
+    f1_score = [0]*len(precision)
+    for i in range(0,len(precision)):
+        f1_score[i] = 2*((precision[i]*recall[i])/(precision[i]+recall[i]))
+    macro_f1_score = sum(f1_score)/len(f1_score)
+    return macro_f1_score
+
+def micro_f1(precision,recall):
+    f1_score = 2*((precision*recall)/(precision+recall))
+    return f1_score
+
+def weighted_f1_score(class_precision,weight):
+    weighted_val = [0] * len(class_precision)
+    for i in range(0,len(class_precision)):
+        weighted_val[i] = class_precision[i] * weight[i]
+    f1_score = sum(weighted_val)/sum(weight)
+    return f1_score
+
+def macro_tpr_fpr(tp,tn,fp,fn,recall=0):
+    if(recall == 0):
+        tpr = get_recall(tp,tn,fp,fn)
+    else:
+        tpr = recall
+    fpr = [0]*len(tp)
+    for i in range(0,len(tp)):
+        fpr[i] = fp[i]/(fp[i]+tn[i])
+    return tpr,fpr
+
+def micro_tpr_fpr(tp,tn,fp,fn,recall=0):
+    if(recall == 0):
+        tpr = micro_recall(tp,tn,fp,fn)
+    else:
+        tpr = recall
+    fpr = fp/(fp+tn)
+    return tpr,fpr
+
+def micro_auc(tpr,fpr):
+    auc = np.trapz(tpr,fpr)
+    return auc
+def macro_auc(tpr,fpr):
+    class_auc = [0] * len(tpr)
+    for i in range(0,len(tpr)):
+        class_auc[i] = np.trapz(tpr,fpr)
+    macro_auc = sum(class_auc)/len(class_auc)
+    return class_auc,macro_auc
+
+def weighted_auc(class_precision,weight):
+    weighted_val = [0] * len(class_precision)
+    for i in range(0,len(class_precision)):
+        weighted_val[i] = class_precision[i] * weight[i]
+    auc = sum(weighted_val)/sum(weight)
+    return auc
+
+def aggregated_confusion_values(tp,tn,fp,fn):
+    agg_tp = sum(tp)
+    agg_tn = sum(tn)
+    agg_fp = sum(fp)
+    agg_fn = sum(fn)
+    return agg_tp,agg_tn,agg_fp,agg_fn
+
+def weights(tp,tn):
+    tp_weight = [0]*len(tp)
+    for i in range(0,len(tp)):
+        tp_weight[i] = tp[i] + tn[i]
+    return tp_weight 
+
+
+
+    
+def get_model_true_false(pred,truth,class_list,tp,fp,fn,tn):
 
     for c_idx in range(0,len(class_list)):
         for idx in range(0,len(pred)):
-            if(pred[idx]==class_list and truth[idx]==class_list):
+            if(pred[idx]==c_idx and truth[idx]==c_idx):
                 tp[c_idx] = tp[c_idx]+1
-            elif(pred[idx]!=class_list and truth[idx]==class_list):
+            elif(pred[idx]!=c_idx and truth[idx]==c_idx):
                 fp[c_idx] = fp[c_idx]+1
-            elif(pred[idx]==class_list and truth[idx]!=class_list):
+            elif(pred[idx]==c_idx and truth[idx]!=c_idx):
                 fn[c_idx] = fn[c_idx]+1
-            elif(pred[idx]==class_list and truth[idx]==class_list):
+            elif(pred[idx]==c_idx and truth[idx]==c_idx):
                 tn[c_idx] = tn[c_idx]+1
     return tp,fp,fn,tn
             
