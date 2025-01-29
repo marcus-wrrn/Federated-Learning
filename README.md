@@ -29,9 +29,11 @@ pip install -r requirements.txt
 
 4. Build and Install the Core Model Logic
 
-Build the core model logic into a distributable package:
+Make sure you are in the `./src/core_model/` directory.
 
-python -m build
+Run the command
+
+`python -m build`
 
 Install the generated package:
 
@@ -48,6 +50,6 @@ make sure you are in the `./src/coordination` directory in the terminal.
 
 Run 
 
-`flask --app server`
+`flask --app server run --debug`
 
-to start the development server. Use the `--debug` flag to enable debugging
+To start the server in development mode
