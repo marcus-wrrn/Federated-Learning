@@ -8,7 +8,11 @@ import argparse
 import time
 import os
 from config import TrainingConfig
-from scheduling_logic import start_scheduler
+from state_logic import start_scheduler
+import datetime
+import string
+import random
+import hashlib
 
 
 def download_model(server_url: str, client_id: str):
@@ -16,6 +20,7 @@ def download_model(server_url: str, client_id: str):
         server_url = 'http://' + server_url
     
     response = requests.get(f'{server_url}/get_model')
+    print("Got model")
     client_folder = f'client{client_id}'
 
     os.makedirs(client_folder, exist_ok=True)
@@ -23,7 +28,7 @@ def download_model(server_url: str, client_id: str):
 
     with open(global_model_path, 'wb') as f:
         f.write(response.content)
-
+    print("Saved model")
     global_model_state = torch.load(global_model_path, map_location='cpu', weights_only=True)
 
     return global_model_state
@@ -102,6 +107,7 @@ def load_key():
     else: 
         client_key = None
     return client_key
+
 def get_key():
     client_key = load_key()
     if not client_key:

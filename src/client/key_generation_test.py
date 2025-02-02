@@ -1,4 +1,4 @@
-import server.client as client
+import client as client
 import os
 import argparse
 # testing creating a brand new key 

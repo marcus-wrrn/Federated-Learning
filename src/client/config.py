@@ -17,6 +17,7 @@ class TrainingConfig:
     instance_path: str
     cuda: bool
     host_ip: str
+    model_name = "model"
     init_time = 15.0
     idle_time = 30.0
     model_id = None
@@ -40,7 +41,7 @@ class TrainingConfig:
     
     @property
     def model_path(self) -> str:
-        return os.path.join(self.instance_path, "model.pth")
+        return os.path.join(self.instance_path, f"{self.model_name}.pth")
     
     @property
     def wait_time(self) -> float:
@@ -57,6 +58,6 @@ class Hyperparameters:
 class CoordinationServerResponse:
     client_id: str
     model_id: str
-    next_state: str
+    state: str
     hyperparameters: Optional[Hyperparameters]
 
