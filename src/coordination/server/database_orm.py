@@ -1,5 +1,4 @@
 import sqlite3
-from flask import current_app
 import os
 from server.data_classes import TrainRound, Client, ClientState
 import datetime
@@ -54,9 +53,21 @@ class CoordinationDB:
         self.cursor.execute('''
             CREATE TABLE IF NOT EXISTS clients (
                 client_id TEXT PRIMARY KEY UNIQUE,
-                model_id TEXT,
-                state TEXT DEFAULT INITIALIZATION,
+                model_id TEXT DEFAULT NULL,
+                state TEXT DEFAULT 'INITIALIZATION',
                 FOREIGN KEY (model_id) REFERENCES model (model_id)
+                    ON DELETE CASCADE ON UPDATE CASCADE
+            );
+        ''')
+
+        self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS client_models (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                cId TEXT,
+                mId TEXT,
+                FOREIGN KEY (mId) REFERENCES model (model_id)
+                    ON DELETE CASCADE ON UPDATE CASCADE,
+                FOREIGN KEY (cId) REFERENCES clients (client_id)
                     ON DELETE CASCADE ON UPDATE CASCADE
             );
         ''')
@@ -83,16 +94,19 @@ class CoordinationDB:
 
         self.conn.commit()
 
-    def add_client(self, client_id: str, model_id: str | None, current_state: str, next_state="IDLE", commit=True) -> None:
+    def add_client(self, client_id: str, model_id: str | None, current_state: str,  commit=True) -> None:
         if self.client_exists(client_id):
             raise Exception("Client already exists")
+        print("client does not exist")
         if model_id is None:
-            self.cursor.execute("INSERT INTO clients (client_id, current_state, next_state) VALUES (?, ?, ?)", (client_id, current_state, next_state,))
+            model_id = self.get_current_model_id()
+            self.cursor.execute("INSERT INTO clients (client_id, model_id, state) VALUES (?, ?, ?)", (client_id, model_id, current_state,))
+            print("model id added")
         else:
             # Check if model_id exists in table
             if not self.model_exists(model_id):
                 raise Exception("Model does not exist in database")
-            self.cursor.execute("INSERT INTO clients (client_id, model_id, current_state, next_state) VALUES (?, ?, ?, ?)", (client_id, model_id, current_state, next_state))
+            self.cursor.execute("INSERT INTO clients (client_id, model_id, state) VALUES (?, ?, ?)", (client_id, model_id, current_state,))
 
         if commit: self.conn.commit()
 
@@ -106,15 +120,18 @@ class CoordinationDB:
         return Client(
             client_id=result[0],
             model_id=result[1],
-            current_state=result[2],
-            next_state=result[3]
+            state=result[2]
         )
     
-    def update_client_model(self, client_id: str, model_id: str, commit=True):
+    def update_client_mId(self, client_id: str, model_id: str, commit=True):
         if not self.model_exists(model_id) or not self.client_exists(client_id):
             raise Exception("Model or Client does not exist")
         
         self.cursor.execute("UPDATE clients SET model_id = ? WHERE client_id = ?", (model_id, client_id,))
+        if commit: self.conn.commit()
+    
+    def add_client_model(self, client_id: str, model_id: str, commit=True):
+        self.cursor.execute("INSERT INTO client_models (cId, mId) VALUES (?, ?)", (client_id, model_id,))
         if commit: self.conn.commit()
 
     def initialize_training(self,
@@ -168,15 +185,6 @@ class CoordinationDB:
             return os.path.join(instance_path, f"training_round_{round_id[0]}/{model_id}.pth")
         return None
 
-    # def start_training_round(self, max_rounds: int, client_threshold: int):
-    #     assert max_rounds > 0
-    #     assert client_threshold > 0
-
-    #     self.cursor.execute("""
-    #         INSERT INTO train_round (max_rounds, current_round, client_threshold, is_aggregating) VALUES (?, ?, ?, ?)
-    #     """, (max_rounds, 0, client_threshold, False))
-    #     self.conn.commit()
-
     def client_exists(self, client_id: str) -> bool:
         self.cursor.execute("SELECT 1 FROM clients WHERE client_id = ?", (client_id,))
         result = self.cursor.fetchone()
@@ -209,6 +217,30 @@ class CoordinationDB:
             learning_rate=result[4],
             is_aggregating=result[5]
         )
+    
+    def save_client_model(self, instance_path: str, client_id: str, model_id: str) -> str:
+        self.cursor.execute("SELECT round_id FROM model WHERE model_id = ?", (model_id,))
+        round_id = self.cursor.fetchone()
+        
+        if not round_id: return None
+        
+        path = os.path.join(instance_path, f"/training_round_{round_id[0]}/client_models/") 
+        os.makedirs(path)
+        path = os.path.join(path, f"{client_id}.pth")
+
+        return path
+    
+    def get_current_model_id(self) -> str | None:
+        self.cursor.execute("""
+            SELECT model.model_id
+            FROM model
+            JOIN training_config ON model.round_id = training_config.round_id;
+        """)
+
+        result = self.cursor.fetchone()
+        if result:
+            return result[0]
+        return None
 
     def close(self):
         self.conn.close()

@@ -32,9 +32,6 @@ def create_app(test_config=None):
     app.register_blueprint(server.bp)
 
     # Setup
-    model = HARSModel(device='cpu')
-    model_bin = model.export_binary()
-    with open(app.config["GLOBAL_BIN_PATH"], "wb") as fp:
-        fp.write(model_bin)
+    
     
     return app

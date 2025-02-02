@@ -32,14 +32,13 @@ class Hyperparameters:
 class Client:
     client_id: str
     model_id: str
-    next_state: str
-    current_state: str
+    state: str
 
 @dataclass
 class CoordinationResponse:
     client_id: str
     model_id: str
-    next_state: str
+    state: str
     hyperparameters: Hyperparameters | None
 
 

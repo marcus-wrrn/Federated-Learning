@@ -13,7 +13,7 @@ bp = Blueprint("training", __name__, url_prefix="/training")
 @bp.route('/get_model/<model_id>', methods=['GET'])
 def get_model(model_id):
     with CoordinationDB(current_app.config["DATAPATH"]) as db:
-
+        print("Hello?")
         path = db.get_model_path(current_app.instance_path, model_id)
         print(path)
         if not path:
@@ -22,6 +22,36 @@ def get_model(model_id):
             return "Model has been deleted", 500
 
     return send_file(path)
+
+@bp.route('/upload-model', methods=['POST'])
+def upload_model():
+    if "model" not in request.files:
+        return "No model", 400
+    
+    model_data = request.files["model"]
+    client_id = request.form.get("client_id")
+    model_id = request.form.get("model_id")
+
+    try:
+        # validate model
+
+
+        with CoordinationDB(current_app.config["DATAPATH"]) as db:
+            db.update_client_mId(client_id, model_id)
+            db.add_client_model(client_id, model_id)
+            filepath = db.save_client_model(current_app.instance_path, client_id, model_id)
+
+            if not filepath:
+                return f"Pathing error", 500
+    
+        model_data.save(filepath)
+        return "Model saved", 200
+    except Exception as e:
+        return f"Error uploading model: {e}", 500
+
+
+        
+
 
 @bp.route('/display_models', methods=['GET'])
 def display():
@@ -38,7 +68,6 @@ def ping_server():
         with CoordinationDB(current_app.config["DATAPATH"]) as db:
             if not db.client_exists(client_resp.client_id):
                 db.add_client(client_resp.client_id, client_resp.model_id, client_resp.state.value)
-            
             # Get current round
             current_round = db.get_current_round()
             # If current round is none or the model is currently aggregating do not update the client script
@@ -47,22 +76,22 @@ def ping_server():
                 response = CoordinationResponse(client)
                 return jsonify(asdict(response)), 200
             
+
             # If the system is aggregating and the client state is not idle, or if the client is initializing set the client to idle
             if (client_resp.state != ClientState.IDLE and current_round.is_aggregating) or client_resp.state == ClientState.INITIALIZATION:
                 db.cursor.execute("UPDATE clients SET state = ? WHERE client_id = ?", (ClientState.IDLE.value, client_resp.client_id))
                 db.conn.commit()
-
+            
             # Else get current model
             model_id = db.get_model_id(current_round.round_id)
             if model_id != client_resp.model_id:
-                db.update_client_model(client_resp.client_id, model_id)
-
+                db.update_client_mId(client_resp.client_id, model_id)
             client = db.get_client(client_resp.client_id)
 
             response = CoordinationResponse(
                 client_id=client.client_id,
                 model_id=client.model_id,
-                next_state=client.next_state,
+                state=client.state,
                 hyperparameters=None
             ) 
 
