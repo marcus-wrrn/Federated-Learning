@@ -9,8 +9,18 @@ import os
 import numpy as np
 import torch.utils.data.dataloader
 from sklearn.metrics import confusion_matrix
+import torch.nn as nn
+
+class model_results:
+    def __init__(self,accuracy_in,tp_in,tn_in,fp_in,fn_in)
+        self.accuracy = accuracy_in
+        self.tp = tp_in
+        self.tn = tn_in
+        self.fp = fp_in
+        self.fn = fn_in    
 
 def validation(device,data_path='',model='',batchsize=5):
+    ## LOAD MODEL ## 
     print("Running validation ...")
     device = device
     if torch.cuda.is_available():
@@ -24,9 +34,11 @@ def validation(device,data_path='',model='',batchsize=5):
         elif(os.path.isfile(model)):
             print("Load model from file")
             model = load_HARSModel(device,model)
-    #else(model.instance())
-    # check to see if inputted model is actally the correct model 
-
+    elif(not isinstance(model,nn.Module)):
+        print("Error input is not a model/n")
+        return -1
+    
+    ## SET UP MODEL ##
     model.to(device)
     model.eval()
     val_set = HARSDataset(data_path)
@@ -38,6 +50,8 @@ def validation(device,data_path='',model='',batchsize=5):
     fp= [0]*len(val_set.class_list)
     fn= [0]*len(val_set.class_list)
     tn = [0]*len(val_set.class_list)
+
+
     for data in val_loader:
         temp = data[0]
         label = data[1]
@@ -54,9 +68,9 @@ def validation(device,data_path='',model='',batchsize=5):
         tp,fp,fn,tn = get_model_true_false(pred_label,label_np,val_set.class_list,tp,fp,fn,tn)
 
     model_accuracy = total_correct/total_test 
-    print(model_accuracy)
-
-        
+    print(model_accuracy)   
+    results = model_results(model_accuracy,tp,fp,fn,tn)
+    return results
 
     
 def get_tpr_fpr(recall=0,tp=0,tn=0,fp=0,fn=0,ground_truth=[],pred_label=[],class_list=[]):    
