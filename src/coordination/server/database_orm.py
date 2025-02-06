@@ -55,6 +55,7 @@ class CoordinationDB:
                 client_id TEXT PRIMARY KEY UNIQUE,
                 model_id TEXT DEFAULT NULL,
                 state TEXT DEFAULT 'INITIALIZATION',
+                has_trained INTEGER DEFAULT 0,
                 FOREIGN KEY (model_id) REFERENCES model (model_id)
                     ON DELETE CASCADE ON UPDATE CASCADE
             );
@@ -76,17 +77,29 @@ class CoordinationDB:
             CREATE TABLE IF NOT EXISTS train_round (
                 round_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 current_round INTEGER DEFAULT 0,
-                max_rounds INTEGER NOT NULL,
-                client_threshold INTEGER NOT NULL,
                 learning_rate REAL DEFAULT 0.01,
                 is_aggregating INTEGER DEFAULT 0
             );
         ''')
 
         self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS super_round (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                current_round_id INTEGER,
+                max_rounds INTEGER NOT NULL,
+                client_threshold INTEGER NOT NULL,
+                FOREIGN KEY (current_round_id) REFERENCES train_round (round_id)
+                    ON DELETE CASCADE ON UPDATE CASCADE
+            );
+        ''')
+
+        self.cursor.execute('''
             CREATE TABLE IF NOT EXISTS training_config (
                 id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1), -- ensures only one table can exist
+                super_id INTEGER,
                 round_id INTEGER,
+                FOREIGN KEY (super_id) REFERENCES super_round (id)
+                    ON DELETE CASCADE ON UPDATE CASCADE
                 FOREIGN KEY (round_id) REFERENCES train_round (round_id)
                     ON DELETE CASCADE ON UPDATE CASCADE
             );
@@ -120,14 +133,12 @@ class CoordinationDB:
         return Client(
             client_id=result[0],
             model_id=result[1],
-            state=result[2]
+            state=result[2],
+            has_trained=bool(result[3])
         )
     
-    def update_client_mId(self, client_id: str, model_id: str, commit=True):
-        if not self.model_exists(model_id) or not self.client_exists(client_id):
-            raise Exception("Model or Client does not exist")
-        
-        self.cursor.execute("UPDATE clients SET model_id = ? WHERE client_id = ?", (model_id, client_id,))
+    def flag_client_training(self, client_id: str, model_id: str, commit=True):
+        self.cursor.execute("UPDATE clients SET has_trained = ? WHERE client_id = ? AND model_id = ?", (1, client_id, model_id,))
         if commit: self.conn.commit()
     
     def add_client_model(self, client_id: str, model_id: str, commit=True):
@@ -141,18 +152,28 @@ class CoordinationDB:
                             learning_rate: float):
         if not (max_rounds > 0 and client_threshold > 0):
             raise Exception(f"Max Rounds and Client Threshold must be above 0 got: max rounds: {max_rounds}, client threshold: {client_threshold}")
-        self.cursor.execute("INSERT INTO train_round (max_rounds, client_threshold, learning_rate) VALUES (?, ?, ?)", (max_rounds, client_threshold, learning_rate,))
+    
+        self.cursor.execute("""
+            INSERT INTO train_round (current_round, learning_rate) VALUES (?, ?)""", (1, learning_rate))
         current_round_id = self.cursor.lastrowid
 
+        self.cursor.execute("""
+            INSERT INTO super_round (current_round_id, max_rounds, client_threshold)
+            VALUES (?, ?, ?)
+        """, (current_round_id, max_rounds, client_threshold))
+        super_round_id = self.cursor.lastrowid
+
         if self.current_round_id() is None:
-            self.cursor.execute("INSERT INTO training_config (round_id) VALUES (?)", (current_round_id,))
+            self.cursor.execute("INSERT INTO training_config (super_id, round_id) VALUES (?, ?)", (super_round_id, current_round_id))
         else:
-            self.cursor.execute("UPDATE training_config SET round_id = ? WHERE id = 1", (current_round_id,))
+            self.cursor.execute("UPDATE training_config SET super_id = ?, round_id = ? WHERE id = 1", (super_round_id, current_round_id))
         
         self.conn.commit()
 
         # Create round directory
-        path = os.path.join(instance_path, f"training_round_{current_round_id}")
+        path = os.path.join(instance_path, f"super_round_{super_round_id}/")
+        os.makedirs(path)
+        path = os.path.join(path, f"training_round_{current_round_id}/")
         os.makedirs(path)
 
     def create_model(self, round_id: int, commit=True) -> str:
@@ -179,10 +200,9 @@ class CoordinationDB:
         return None
     
     def get_model_path(self, instance_path: str, model_id: str) -> str | None:
-        self.cursor.execute("SELECT round_id FROM model WHERE model_id = ?", (model_id,))
-        round_id = self.cursor.fetchone()
-        if round_id:
-            return os.path.join(instance_path, f"training_round_{round_id[0]}/{model_id}.pth")
+        round_data = self.get_current_round()
+        if round_data:
+            return os.path.join(instance_path, f"super_round_{round_data.super_round_id}/training_round_{round_data.round_id}/{model_id}.pth")
         return None
 
     def client_exists(self, client_id: str) -> bool:
@@ -199,32 +219,34 @@ class CoordinationDB:
     
     def get_current_round(self) -> TrainRound | None:
         self.cursor.execute("""
-            SELECT tr.*
+            SELECT sr.id, tr.round_id, tr.current_round, sr.max_rounds, sr.client_threshold, 
+                tr.learning_rate, tr.is_aggregating
             FROM train_round tr
-            JOIN training_config tc on tr.round_id = tc.round_id
+            JOIN training_config tc ON tr.round_id = tc.round_id
+            JOIN super_round sr ON tc.super_id = sr.id
             WHERE tc.id = 1
         """)
         result = self.cursor.fetchone()
 
         if not result:
             return None
-        
+
         return TrainRound(
-            round_id=result[0],
-            current_round=result[1],
-            max_rounds=result[2],
-            client_threshold=result[3],
-            learning_rate=result[4],
-            is_aggregating=result[5]
+            super_round_id=result[0],
+            round_id=result[1],
+            current_round=result[2],
+            max_rounds=result[3],  
+            client_threshold=result[4],  
+            learning_rate=result[5],
+            is_aggregating=result[6]
         )
     
     def save_client_model(self, instance_path: str, client_id: str, model_id: str) -> str:
-        self.cursor.execute("SELECT round_id FROM model WHERE model_id = ?", (model_id,))
-        round_id = self.cursor.fetchone()
+        round_data = self.get_current_round()
         
-        if not round_id: return None
+        if not round_data: return None
         
-        path = os.path.join(instance_path, f"/training_round_{round_id[0]}/client_models/") 
+        path = os.path.join(instance_path, f"super_round_{round_data.super_round_id}/training_round_{round_data.round_id}/client_models/") 
         os.makedirs(path)
         path = os.path.join(path, f"{client_id}.pth")
 
@@ -241,6 +263,12 @@ class CoordinationDB:
         if result:
             return result[0]
         return None
+    
+    def update_round(self, model_id: str):
+        current_round = self.get_current_round()
+        # increment current round
+        self.cursor.execute("UPDATE train_round SET current_round = ? WHERE round_id = ?", (current_round.current_round + 1, current_round.round_id))
+        # create new model
 
     def close(self):
         self.conn.close()

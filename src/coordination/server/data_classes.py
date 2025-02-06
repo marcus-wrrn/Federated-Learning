@@ -17,6 +17,7 @@ class ClientRequest:
 
 @dataclass
 class TrainRound:
+    super_round_id: int
     round_id: int
     current_round: int
     max_rounds: int
@@ -33,6 +34,7 @@ class Client:
     client_id: str
     model_id: str
     state: str
+    has_trained: bool
 
 @dataclass
 class CoordinationResponse:
