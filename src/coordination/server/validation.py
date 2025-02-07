@@ -14,14 +14,26 @@ import datetime
 import csv 
 
 class model_results:
-    def __init__(self,accuracy_in,tp_in,tn_in,fp_in,fn_in):
+    def __init__(self,accuracy_in,tp_in,tn_in,fp_in,fn_in,acc,recall,precision,f1):
         self.accuracy = accuracy_in
         self.tp = tp_in
         self.tn = tn_in
         self.fp = fp_in
         self.fn = fn_in    
+        self.all_accuracy = acc
+        self.all_recall = recall
+        self.all_precision = precision
+        self.all_f1 = f1
     def load_results(file_path):
         print("To be implemented")
+    def get_all_accuracy():
+        print("Hi")
+    def get_all_recall():        
+        print("Hi")
+    def get_all_precision():
+        print("Hi")
+    def get_all_f1():
+        print("Hi")
 
 def validation(device,data_path='',model='',batchsize=5,threshold=0.5):
     ## LOAD MODEL ## 
