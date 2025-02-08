@@ -303,3 +303,7 @@ class CoordinationDB:
         self.cursor.execute("SELECT client_models.cId FROM model JOIN client_models ON model.model_id = client_models.mId WHERE round_id = ?",(current_round) )
         results = self.cursor.fetchall()
         return results
+    def get_round_client_list2(self,model_Id):        
+        self.cursor.execute("SELECT client_models.cId FROM client_models WHERE mId = ?",(model_Id) )
+        results = self.cursor.fetchall()
+        return results
