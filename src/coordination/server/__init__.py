@@ -2,6 +2,7 @@ import os
 from flask import Flask
 from flcore.models.basic import HARSModel
 import threading
+import check_database
 
 def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
@@ -32,6 +33,9 @@ def create_app(test_config=None):
     app.register_blueprint(server.bp)
 
     # Setup
-    
+
+    # Threading
+    thread = threading.Thread(target=check_database,daemon=True)    
+    thread.start()
     
     return app
