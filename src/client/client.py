@@ -147,7 +147,21 @@ def get_key():
 #         # Wait for the server to complete aggregation
 #         wait_for_aggregation(args.server_url)
 
+def create_client(train_path_in,server_url_in,instance_path_in,cuda_in):
+    print("Creating client")
+    cfg = TrainingConfig(
+        train_path = train_path_in, 
+        instance_path = instance_path_in,
+        host_ip = server_url_in,
+        cuda = True if cuda_in.lower() == 'y' else False,
+    )
+
+    if not os.path.exists(cfg.instance_path):
+        os.mkdir(cfg.instance_path)
+    start_scheduler(cfg)    
+
 if __name__ == "__main__":
+    print("Creating a client")
     parser = argparse.ArgumentParser()
     parser.add_argument("--train_path", type=str, default="./train.csv")
     parser.add_argument("--server_url", type=str, default="http://localhost:8080")

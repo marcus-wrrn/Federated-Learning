@@ -2,7 +2,8 @@ import os
 from flask import Flask
 from flcore.models.basic import HARSModel
 import threading
-import check_database
+#import check_database
+from server.check_database import check_database 
 
 def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
@@ -18,6 +19,8 @@ def create_app(test_config=None):
         NUM_CLIENTS = 2, # TODO: Should eventually be removed to allow for a dynamic number of clients
         GLOBAL_BIN_PATH = os.path.join(app.instance_path, "global_model.bin")
     )
+    print("Database path : ")
+    print(app.config["DATAPATH"])
 
     if test_config is None:
         app.config.from_pyfile('config.py', silent=True)
@@ -35,7 +38,11 @@ def create_app(test_config=None):
     # Setup
 
     # Threading
-    thread = threading.Thread(target=check_database,daemon=True)    
+    # Threading with app context
+    def run_check_database():
+        with app.app_context():
+            check_database()
+    thread = threading.Thread(target=run_check_database,daemon=True)    
     thread.start()
     
     return app

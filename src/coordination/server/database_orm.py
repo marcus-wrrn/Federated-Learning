@@ -285,11 +285,12 @@ class CoordinationDB:
     def get_round_threshold(self):
         # 
         current_round = self.current_round_id()
-        self.cursor.execute("SELECT super_round.client_threshold FROM super_round WHERE current_round_id = ?",(current_round))
+        print(current_round)
+        self.cursor.execute("SELECT super_round.client_threshold FROM super_round WHERE super_round.current_round_id = ?",(current_round))
         result = self.cursor.fetchone()
         return result
     def get_client_round_num(self):
-        # Get the number of clients currently in a training round 
+        # Get the number of clients currently in a trgit aining round 
         current_round = self.current_round_id()
         self.cursor.execute("COUNT(id) FROM model JOIN client_models ON model.model_id = client_models.mId WHERE round_id = ?",(current_round) )
         results = self.cursor.fetchone()
