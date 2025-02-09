@@ -14,6 +14,7 @@ class HARSDataset(Dataset):
         self.labels = torch.tensor([self._map_label(label) for label in self.data.values[:, -1]])
         self.labels = torch.nn.functional.one_hot(self.labels, num_classes=6).float()
         self.user = self.data.values[:, -2]
+        self.class_list = [0,1,2,3,4,5]
     
     def _map_label(self, label: str) -> int:
         label_mapping = {
