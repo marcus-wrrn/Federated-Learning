@@ -57,39 +57,53 @@ def display():
 
 @bp.route('/ping', methods=['POST'])
 def ping_server():
+    print("In Ping")
     data = request.get_json()
     try:
+        print("In try")
         client_resp = ClientRequest(data)
         hyperparameters = None
+        print("Establishing DB connection")
         with CoordinationDB(current_app.config["DATAPATH"]) as db:
+            print("In DB")
             if not db.client_exists(client_resp.client_id):
                 db.add_client(client_resp.client_id, client_resp.model_id, client_resp.state.value)
             # Get current round
             current_round = db.get_current_round()
-            
+            print("Here1")
             # If current round is none or the model is currently aggregating do not update the client script
             if current_round is None:
+                print("cur 1")
                 client = db.get_client(client_resp.client_id)
-                response = CoordinationResponse(client)
+                print("cur 2")
+                print(client)
+                print(type(client))
+                print("Corodination Response")
+                response = CoordinationResponse(client_id=client.client_id, model_id=client.model_id, state=client.state,hyperparameters=None)
+                print("Finish coordination class")
+                print("here")
+                print(response)
+                print("cur 3")
                 return jsonify(asdict(response)), 200
-            
+            print("Here2")
             current_model_id = db.get_current_model_id()
             if client_resp.model_id != current_model_id:
                 db.cursor.execute("UPDATE clients SET model_id = ?, has_trained = ? WHERE client_id = ?", (current_model_id, 0, client_resp.client_id))
                 db.conn.commit()
+            print("Here3")                
             # If the system is aggregating and the client state is not idle, or if the client is initializing set the client to idle
             if (client_resp.state != ClientState.IDLE and current_round.is_aggregating) or client_resp.state == ClientState.INITIALIZATION:
                 db.cursor.execute("UPDATE clients SET state = ? WHERE client_id = ?", (ClientState.IDLE.value, client_resp.client_id))
                 db.conn.commit()
             
             # Check if the model should be training
-
+            print("Here4")
             client = db.get_client(client_resp.client_id)
 
             if not client.has_trained and not current_round.is_aggregating:
                 client.state = 'TRAIN'
                 hyperparameters = Hyperparameters(learning_rate=current_round.learning_rate)
-
+            print("Here5")
             response = CoordinationResponse(
                 client_id=client.client_id,
                 model_id=client.model_id,
@@ -105,6 +119,7 @@ def ping_server():
 
 @bp.route('/initialize', methods=['POST'])
 def init_training():
+    print("Start training")
     """
     Route for initializing a training session.
     """
