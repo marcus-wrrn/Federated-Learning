@@ -5,7 +5,7 @@ import server
 import os
 import torch
 from flcore.models.basic import HARSModel
-
+import validation
 
 def check_database():
     while True:
@@ -60,7 +60,7 @@ def check_database():
                 # need to load the model the current model
                 cur_model_id = db.get_model_id(cur_round)
                 #path = os.path.join(current_app.instance_path, f"super_round_{cur_round.super_round_id}/training_round_{cur_round.round_id}/{new_model_id}.pth")
-                path = db.get_model_path(current_app.instance_path,cur_model_id)
+                round_path = db.get_model_path(current_app.instance_path,cur_model_id)
                 cur_model = HARSModel("cpu")
                 cur_model.load_state_dict(torch.load(path))
 
@@ -83,7 +83,7 @@ def check_database():
 
                 # save the aggregate model         
                 cur_model.load_state_dict(aggregate_states)
-                cur_model.save(path)
+                cur_model.save(round_path)
 
                 if(client_count+1 < client_threshold):
                     # implement new round logic
@@ -107,6 +107,9 @@ def check_database():
                 # CODE GOES HERE
                 # get current path
                 # pass path to the validaiton function
+                test_datapath = "C:/Users/spark/Documents/git/Federated-Learning/data/train.csv"
+                validation("cpu",test_datapath,round_path)
+
                 # # do something with results                
                 print("Finish validating results")
         
