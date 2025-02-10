@@ -36,15 +36,18 @@ def check_database():
             # with new model it sends it to the client with the next training information 
             # exit db
             
-            cur_round = db.current_round_id()
-            
+            cur_round = db.get_current_round()
+
             if(cur_round):
                 print("Here")
-                print("cur_round : " + cur_round)
+                print("cur_round : ",cur_round.current_round)
                 print("There")
                 client_threshold = db.get_round_threshold()
                 client_count = db.get_client_round_num()
-                if(client_count > client_threshold):
+                print("Client count : ",client_count)
+                print("Client threshold : ",client_threshold)
+                print(client_count >= client_threshold)
+                if(client_count >= client_threshold):
                     print("Can aggregate")
                     db.update_aggregate(1)
                     ## Do aggregation
@@ -67,11 +70,11 @@ def check_database():
                     # set up the client_dict
 
                     # need to load the model the current model
-                    cur_model_id = db.get_model_id(cur_round)
+                    cur_model_id = db.get_model_id(cur_round.current_round)
                     #path = os.path.join(current_app.instance_path, f"super_round_{cur_round.super_round_id}/training_round_{cur_round.round_id}/{new_model_id}.pth")
                     round_path = db.get_model_path(current_app.instance_path,cur_model_id)
                     cur_model = HARSModel("cpu")
-                    cur_model.load_state_dict(torch.load(path))
+                    cur_model.load_state_dict(torch.load(round_path))
 
                     # need to get all the clients who are going to be aggregated
                     # need to combine them or something/format them so they can be called in the server.aggregate_models
@@ -81,31 +84,41 @@ def check_database():
                     # format clients
                     client_list_states = []
                     client_ids = db.get_round_client_list2(cur_model_id)
-                    for c_idx in range (1,len(client_ids)):
-                        client_path = db.save_client_model(current_app.instance_path,client_ids[c_idx][0],cur_model_id)
+                    for c_idx in range (0,len(client_ids)):
+                        
+                        client_path = db.get_client_model(current_app.instance_path,client_ids[c_idx][0],cur_model_id)
+                        print("Client id: ",client_ids[c_idx][0])
+                        print("Loading : ",client_path)
                         client_model = HARSModel("cpu")
-                        client_model.load(state_dict(torch.load(client_path)))
+                        client_model.load_state_dict(torch.load(client_path))
                         client_state = client_model.state_dict()
-                        client_list_states = [client_list_states, client_state]
+                        client_list_states.append(client_state)
+                        db.flag_client_training(client_ids[c_idx][0],cur_model_id,0)
 
-                    aggregate_states = agg_model(client_list_states,cur_model)
+                    aggregate_states = agg_model(client_list_states,cur_model.state_dict())
 
                     # save the aggregate model         
                     cur_model.load_state_dict(aggregate_states)
-                    cur_model.save(round_path)
+                    torch.save(cur_model.state_dict(), round_path)
 
-                    if(client_count+1 < client_threshold):
+                    max_round = db.get_max_rounds()
+                    db.update_aggregate(0)
+                    if(cur_round.current_round+1 < max_round[0]):
+                        print("Incrementing round")
                         # implement new round logic
-                        new_round = db.update_round()
-                        new_model = db.create_model(new_round)
+                        db.update_round()
+                        new_round =  db.get_current_round()
+                        print(new_round.current_round)
+                        new_model_id = db.create_model(new_round.round_id)
                         model = HARSModel("cpu")
-                        new_model_id = db.create_model(round.round_id)
+                        #new_model_id = db.get_model_id(new_round.round_id)
                         #path = os.path.join(current_app.instance_path, f"super_round_{new_round.super_round_id}/training_round_{new_round.round_id}/{new_model_id}.pth")
                         path = db.get_model_path(current_app.instance_path,new_model_id)
                         torch.save(model.state_dict(), path)
                     else:
-                        print("Aggregation done")
-                    db.update_aggregate(0)
+                        print("Max rounds has been hit")
+                        print("Training done")
+                    
 
 
                     print("Finished aggregating ")
@@ -116,11 +129,14 @@ def check_database():
                     # CODE GOES HERE
                     # get current path
                     # pass path to the validaiton function
-                    test_datapath = "C:/Users/spark/Documents/git/Federated-Learning/data/train.csv"
-                    validation("cpu",test_datapath,round_path)
+                    # CHANGE DATA PATH
+                    #test_datapath = "C:/Users/spark/Documents/git/Federated-Learning/data/train.csv"
+                    #validation.validation("cpu",test_datapath,round_path)
 
                     # # do something with results                
                     print("Finish validating results")
+                else:
+                    print("Can't aggregate")
             else:
                 print("Not training")
         
@@ -130,6 +146,11 @@ def check_database():
 def agg_model(client_states , round_state:dict) -> dict:
     # Simple average of model parameters
     new_state = {}
+    #print(type(round_state))
+    #for client_state in client_states:
+        #print(type(client_state))
+        #print(client_state)
+
     for key in round_state.keys():
         new_state[key] = sum([client_state[key] for client_state in client_states]) / len(client_states)
     return new_state        

@@ -7,7 +7,7 @@ from server.check_database import check_database
 
 def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
-
+    app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024
     # Add global values 
     # TODO: Move to config.py file
     # TODO: This method of global variables could potentially lead to bugs. We should be using a file system or database to store information SQLite may be a good choice
@@ -34,7 +34,7 @@ def create_app(test_config=None):
     # Add routes to app
     from . import server
     app.register_blueprint(server.bp)
-
+    print(app.url_map)
     # Setup
 
     # Threading
