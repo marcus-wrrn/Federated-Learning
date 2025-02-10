@@ -24,21 +24,30 @@ def get_model(model_id):
 
 @bp.route('/upload-model', methods=['POST'])
 def upload_model():
+    print("HEre")
+    print("Recieved client model")
     if "model" not in request.files:
-        return "No model", 400
-    
+        return "No model", 400    
     model_data = request.files["model"]
     client_id = request.form.get("client_id")
     model_id = request.form.get("model_id")
+    print("Recieved from : ",client_id)
 
     try:
         # validate model
 
-
+        print("DB")
         with CoordinationDB(current_app.config["DATAPATH"]) as db:
-            db.update_client_mId(client_id, model_id)
+            print("flag client training")
+            db.flag_client_training(client_id, model_id,1)
+            print("Update client_model")
             db.add_client_model(client_id, model_id)
+            print("Save client model")
+            print(current_app.instance_path)
+            print(client_id)
+            print(model_id)
             filepath = db.save_client_model(current_app.instance_path, client_id, model_id)
+            print(filepath)
 
             if not filepath:
                 return f"Pathing error", 500
@@ -99,8 +108,11 @@ def ping_server():
             # Check if the model should be training
             print("Here4")
             client = db.get_client(client_resp.client_id)
+            print("trained: ",client.has_trained)
+            print("is agg: ",current_round.is_aggregating)
 
             if not client.has_trained and not current_round.is_aggregating:
+                print("Updating client state")
                 client.state = 'TRAIN'
                 hyperparameters = Hyperparameters(learning_rate=current_round.learning_rate)
             print("Here5")

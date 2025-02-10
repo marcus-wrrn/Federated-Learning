@@ -137,8 +137,8 @@ class CoordinationDB:
             has_trained=bool(result[3])
         )
     
-    def flag_client_training(self, client_id: str, model_id: str, commit=True):
-        self.cursor.execute("UPDATE clients SET has_trained = ? WHERE client_id = ? AND model_id = ?", (1, client_id, model_id,))
+    def flag_client_training(self, client_id: str, model_id: str,val:int, commit=True):
+        self.cursor.execute("UPDATE clients SET has_trained = ? WHERE client_id = ? AND model_id = ?", (val, client_id, model_id,))
         if commit: self.conn.commit()
     
     def add_client_model(self, client_id: str, model_id: str, commit=True):
@@ -182,6 +182,7 @@ class CoordinationDB:
         # Keep generating a new model ID until a new key is generated
         while self.model_exists(model_id):
             model_id = generate_random_key()
+        print(type(round_id))
         self.cursor.execute("INSERT INTO model (model_id, round_id) VALUES (?, ?)", (model_id, round_id))
         if commit: self.conn.commit()
 
@@ -243,12 +244,16 @@ class CoordinationDB:
     
     def save_client_model(self, instance_path: str, client_id: str, model_id: str) -> str:
         round_data = self.get_current_round()
-        
+        print(round_data)
         if not round_data: return None
         
         path = os.path.join(instance_path, f"super_round_{round_data.super_round_id}/training_round_{round_data.round_id}/client_models/") 
-        os.makedirs(path)
+        print("dir: " ,path)
+        if(not os.path.isdir(path)):
+            print("Creating directory")
+            os.makedirs(path)
         path = os.path.join(path, f"{client_id}.pth")
+        print("model path: ",path)
 
         return path
     
@@ -264,7 +269,7 @@ class CoordinationDB:
             return result[0]
         return None
     
-    def update_round(self, model_id: str):
+    def update_round(self):
         current_round = self.get_current_round()
         # increment current round
         self.cursor.execute("UPDATE train_round SET current_round = ? WHERE round_id = ?", (current_round.current_round + 1, current_round.round_id))
@@ -286,25 +291,40 @@ class CoordinationDB:
         # 
         current_round = self.current_round_id()
         print(current_round)
-        self.cursor.execute("SELECT super_round.client_threshold FROM super_round WHERE super_round.current_round_id = ?",(current_round))
+        print(type(current_round))
+        self.cursor.execute("SELECT super_round.client_threshold FROM super_round WHERE current_round_id = ?",(current_round,))
         result = self.cursor.fetchone()
         return result
     def get_client_round_num(self):
         # Get the number of clients currently in a trgit aining round 
-        current_round = self.current_round_id()
-        self.cursor.execute("COUNT(id) FROM model JOIN client_models ON model.model_id = client_models.mId WHERE round_id = ?",(current_round) )
+        current_round = self.get_current_round()
+        self.cursor.execute("SELECT COUNT(id) FROM model JOIN client_models ON model.model_id = client_models.mId WHERE round_id = ?",(current_round.current_round,) )
         results = self.cursor.fetchone()
         return results
     def update_aggregate(self,value):
         current_round = self.current_round_id()
-        self.cursor.execute("UPDATE train_round SET is_aggregate = ? WHERE round_id = ? ",(value,current_round))
+        self.cursor.execute("UPDATE train_round SET is_aggregating = ? WHERE round_id = ? ",(value,current_round,))
 
     def get_round_client_list(self):
-        current_round = self.current_round_id()
-        self.cursor.execute("SELECT client_models.cId FROM model JOIN client_models ON model.model_id = client_models.mId WHERE round_id = ?",(current_round) )
+        current_round = self.get_current_round()
+        self.cursor.execute("SELECT client_models.cId FROM model JOIN client_models ON model.model_id = client_models.mId WHERE round_id = ?",(current_round.current_round,) )
         results = self.cursor.fetchall()
         return results
     def get_round_client_list2(self,model_Id):        
-        self.cursor.execute("SELECT client_models.cId FROM client_models WHERE mId = ?",(model_Id) )
+        self.cursor.execute("SELECT client_models.cId FROM client_models WHERE mId = ?",(model_Id,) )
         results = self.cursor.fetchall()
         return results
+    def get_client_model(self, instance_path: str, client_id: str, model_id: str) -> str:
+        round_data = self.get_current_round()
+        
+        if not round_data: return None
+        
+        path = os.path.join(instance_path, f"super_round_{round_data.super_round_id}/training_round_{round_data.round_id}/client_models/") 
+        path = os.path.join(path, f"{client_id}.pth")
+
+        return path
+    def get_max_rounds(self):
+        current_round = self.current_round_id()
+        self.cursor.execute("SELECT super_round.max_rounds FROM super_round WHERE current_round_id = ?",(current_round,))
+        result = self.cursor.fetchone()
+        return result

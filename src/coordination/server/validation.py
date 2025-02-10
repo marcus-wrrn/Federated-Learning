@@ -8,7 +8,7 @@ from flcore.data_handling.datasets import HARSDataset
 import os
 import numpy as np
 import torch.utils.data.dataloader
-from sklearn.metrics import confusion_matrix
+#from sklearn.metrics import confusion_matrix
 import torch.nn as nn
 import datetime
 import csv 
