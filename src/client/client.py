@@ -160,6 +160,17 @@ def create_client(train_path_in,server_url_in,instance_path_in,cuda_in):
         os.mkdir(cfg.instance_path)
     start_scheduler(cfg)    
 
+def start_training(path):
+    print("Starting training")
+    data = {
+        "max_rounds" : 5,
+        "client_threshold" : 3,
+        "learning_rate" : 0.01
+    }
+    route = path +"/training/initialize"
+    response = requests.post(route,json=data)
+    response.raise_for_status()
+
 if __name__ == "__main__":
     print("Creating a client")
     parser = argparse.ArgumentParser()
