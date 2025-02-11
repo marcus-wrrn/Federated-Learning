@@ -9,10 +9,11 @@ import server.validation
 
 def check_database():
     print("Starting database check")
-    count = 0
+    #count = 0
+    finished_agg = 0
     while True:  
-        count = count+1
-        print ("Check round : ",count)     
+        #count = count+1
+        #print ("Check round : ",count)     
         with CoordinationDB(current_app.config["DATAPATH"]) as db:
             # Check database
             
@@ -38,7 +39,7 @@ def check_database():
             
             cur_round = db.get_current_round()
 
-            if(cur_round):
+            if(cur_round and not finished_agg):
                 print("Here")
                 print("cur_round : ",cur_round.current_round)
                 print("There")
@@ -46,7 +47,7 @@ def check_database():
                 client_count = db.get_client_round_num()
                 print("Client count : ",client_count)
                 print("Client threshold : ",client_threshold)
-                print(client_count >= client_threshold)
+                #print(client_count >= client_threshold)
                 if(client_count >= client_threshold):
                     print("Can aggregate")
                     db.update_aggregate(1)
@@ -72,8 +73,10 @@ def check_database():
                     # need to load the model the current model
                     cur_model_id = db.get_model_id(cur_round.current_round)
                     #path = os.path.join(current_app.instance_path, f"super_round_{cur_round.super_round_id}/training_round_{cur_round.round_id}/{new_model_id}.pth")
+                    print(cur_model_id)
                     round_path = db.get_model_path(current_app.instance_path,cur_model_id)
                     cur_model = HARSModel("cpu")
+                    print(round_path)
                     cur_model.load_state_dict(torch.load(round_path))
 
                     # need to get all the clients who are going to be aggregated
@@ -104,7 +107,7 @@ def check_database():
                     max_round = db.get_max_rounds()
                     db.update_aggregate(0)
                     if(cur_round.current_round+1 < max_round[0]):
-                        print("Incrementing round")
+                        print("Incrementing round HERE")
                         # implement new round logic
                         db.update_round()
                         new_round =  db.get_current_round()
@@ -118,7 +121,8 @@ def check_database():
                     else:
                         print("Max rounds has been hit")
                         print("Training done")
-                    
+                        db.cursor.execute("DELETE FROM training_config WHERE id = 1")
+                        finished_agg = 1
 
 
                     print("Finished aggregating ")
