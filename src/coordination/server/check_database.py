@@ -14,8 +14,8 @@ def check_database():
         with CoordinationDB(current_app.config["DATAPATH"]) as db:
             # Check database    
             cur_round = db.get_current_round()
-            if (cur_round is None and not finished_agg): continue
-                    
+            if (cur_round is None or finished_agg): continue
+
             print("Training round: ",cur_round.current_round)
             client_threshold = db.get_round_threshold()
             client_count = db.get_client_round_num()
