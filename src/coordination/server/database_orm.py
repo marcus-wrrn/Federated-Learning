@@ -307,23 +307,9 @@ class CoordinationDB:
     def get_client_round_num(self):
         # Get the number of clients currently in a trgit aining round 
         current_round = self.get_current_round()
-        print(current_round.current_round)
-        print(current_round.round_id)
-        self.cursor.execute("SELECT * FROM client_models")
-        results = self.cursor.fetchall()
-        print("Client model table: ",results)
-
-        self.cursor.execute("SELECT * FROM train_round")
-        results = self.cursor.fetchall()
-        print("train round table : ",results)
-
-        self.cursor.execute("SELECT * FROM model")
-        results = self.cursor.fetchall()
-        print("model: ",results)
-
+        
         self.cursor.execute("SELECT COUNT(id) FROM model JOIN client_models ON model.model_id = client_models.mId WHERE round_id = ?",(current_round.current_round,) )
         results = self.cursor.fetchone()
-        print(results)
         return results
     def update_aggregate(self,value):
         current_round = self.current_round_id()
@@ -333,7 +319,6 @@ class CoordinationDB:
         current_round = self.get_current_round()
         self.cursor.execute("SELECT client_models.cId FROM model JOIN client_models ON model.model_id = client_models.mId WHERE round_id = ?",(current_round.current_round,) )
         results = self.cursor.fetchall()
-        print(results)
         return results
     def get_round_client_list2(self,model_Id):        
         self.cursor.execute("SELECT client_models.cId FROM client_models WHERE mId = ?",(model_Id,) )
