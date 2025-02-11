@@ -5,7 +5,7 @@ import server
 import os
 import torch
 from flcore.models.basic import HARSModel
-import server.validation
+from server.validation import validation
 
 def check_database():
     print("Starting database check")
@@ -46,9 +46,25 @@ def check_database():
                 cur_model.load_state_dict(aggregate_states)
                 torch.save(cur_model.state_dict(), round_path)
 
+                ## Do validation
+                # Get test data set path
+                datapath = current_app.instance_path
+                while True:
+                    datapath = os.path.dirname(datapath)
+                    if(os.path.isdir(os.path.join(datapath,"data"))):
+                        datapath = os.path.join(datapath,"data","test.csv")
+                        break
+                    if datapath == os.sep:
+                        datapath = None
+                        break 
+                    
+                # call validation function
+                if datapath is not None :
+                    results = validation("cpu",datapath,cur_model)
+
                 max_round = db.get_max_rounds()
                 db.update_aggregate(0)
-                if(cur_round.current_round+1 < max_round[0]):
+                if(cur_round.current_round+1 <= max_round[0]):
                     # implement new round logic
                     db.update_round()
                     new_round =  db.get_current_round()
@@ -68,9 +84,7 @@ def check_database():
                 #print("Finished aggregating ")
                 
                 
-                ## Do validation
-                # # do something with results                
-                #print("Finish validating results")
+                
 
         time.sleep(30)
                 

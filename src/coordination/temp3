@@ -17,4 +17,4 @@ app = create_app()
 
 if __name__ == "__main__":
     print("Running coordination server")
-    app.run(debug=True,host=ip_address)
+    app.run(host=ip_address)
