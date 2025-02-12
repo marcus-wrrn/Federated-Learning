@@ -8,19 +8,18 @@ from flcore.data_handling.datasets import HARSDataset
 import os
 import numpy as np
 import torch.utils.data.dataloader
-from sklearn.metrics import confusion_matrix
+#from sklearn.metrics import confusion_matrix
 import torch.nn as nn
 import datetime
 import csv 
 
 class model_results:
-    def __init__(self,accuracy_in,tp_in,tn_in,fp_in,fn_in,acc,recall,precision,f1):
+    def __init__(self,accuracy_in,tp_in,tn_in,fp_in,fn_in,recall,precision,f1):
         self.accuracy = accuracy_in
         self.tp = tp_in
         self.tn = tn_in
         self.fp = fp_in
         self.fn = fn_in    
-        self.all_accuracy = acc
         self.all_recall = recall
         self.all_precision = precision
         self.all_f1 = f1
@@ -35,7 +34,7 @@ class model_results:
     def get_all_f1():
         print("Hi")
 
-def validation(device,data_path='',model='',batchsize=5,threshold=0.5):
+def validation(device,data_path='',model='',batchsize=5,threshold=0.5,save_val=0):
     ## LOAD MODEL ## 
     print("Running validation ...")
     device = device
@@ -122,19 +121,19 @@ def validation(device,data_path='',model='',batchsize=5,threshold=0.5):
     auc_weight = weighted_auc(class_auc,class_weights)
     print("AUC Precision {}, AUC Precision {}, AUC Precision {}\n".format(auc_micro,auc_macro,auc_weight))
 
-    results = model_results(model_accuracy,tp,fp,fn,tn)
-
-    with open(savefile,"w",newline="") as file:
-        writer = csv.writer(file)
-        export_data = [
-            ["accuracy",results.accuracy],
-            ["tp",results.tp],
-            ["tn",results.tn],
-            ["fp",results.fp],
-            ["fn",results.fn]
-        ]
-        writer.writerows(export_data) 
-    file.close()   
+    results = model_results(model_accuracy,tp,fp,fn,tn,recall_macro,precision_macro,f1_macro)
+    if(save_val):
+        with open(savefile,"w",newline="") as file:
+            writer = csv.writer(file)
+            export_data = [
+                ["accuracy",results.accuracy],
+                ["tp",results.tp],
+                ["tn",results.tn],
+                ["fp",results.fp],
+                ["fn",results.fn]
+            ]
+            writer.writerows(export_data) 
+        file.close()   
     return results
     
 def get_tpr_fpr(recall=0,tp=0,tn=0,fp=0,fn=0,ground_truth=[],pred_label=[],class_list=[]):    
@@ -155,54 +154,96 @@ def get_tpr_fpr(recall=0,tp=0,tn=0,fp=0,fn=0,ground_truth=[],pred_label=[],class
 def get_recall(tp,fn):
     recall = [0] * len(tp)
     for i in range(0,len(tp)):
-        recall[i] = tp[i]/(tp[i]+fn[i])
-    macro_recall = sum(recall)/len(recall)
+        denom = tp[i]+fn[i]
+        if(denom == 0):
+            recall[i] =0
+        else:
+            recall[i] = tp[i]/denom
+    if(len(recall) == 0):
+        macro_recall = 0
+    else:
+        macro_recall = sum(recall)/len(recall)
     return recall,macro_recall
 
 def micro_recall(agg_tp,agg_fn):
-    recall = agg_tp/(agg_tp+agg_fn)
+    denom = (agg_tp+agg_fn)
+    if(denom==0):
+        recall = 0
+    else:
+        recall = agg_tp/denom
     return recall
 
 def weighted_recall(class_recall,weight):
     weighted_val = [0] * len(class_recall)
     for i in range(0,len(class_recall)):
         weighted_val[i] = class_recall[i] * weight[i]
-    recall = sum(weighted_val)/sum(weight)
+    if(sum(weight)==0):
+        recall =0
+    else:
+        recall = sum(weighted_val)/sum(weight)
     return recall
 
 def get_macro_precision(tp,fp):
     precision = [0] * len(tp)
     for i in range(0,len(tp)):
-        precision[i] = tp[i]/(tp[i]+fp[i])
-    macro_precision = sum(precision)/len(precision)
+        denom = (tp[i]+fp[i])
+        if(denom ==0):
+            precision[i] =0
+        else:
+            precision[i] = tp[i]/denom
+    if(len(precision)==0):
+        macro_precision =0
+    else: 
+        macro_precision = sum(precision)/len(precision)
     return precision,macro_precision
 
 def micro_precision(agg_tp,agg_fp):
-    return agg_tp/(agg_tp+agg_fp)
+    denom = (agg_tp+agg_fp)
+    if(denom == 0):
+        return 0
+    else:
+        return agg_tp/denom
 
 def weighted_precision(class_precision,weight):
     weighted_val = [0] * len(class_precision)
     for i in range(0,len(class_precision)):
         weighted_val[i] = class_precision[i] * weight[i]
-    precision = sum(weighted_val)/sum(weight)
+    if(sum(weight)==0):
+        precision = 0
+    else:
+        precision = sum(weighted_val)/sum(weight)
     return precision
 
 def macro_f1(precision,recall):
     f1_score = [0]*len(precision)
     for i in range(0,len(precision)):
-        f1_score[i] = 2*((precision[i]*recall[i])/(precision[i]+recall[i]))
-    macro_f1_score = sum(f1_score)/len(f1_score)
+        denom = (precision[i]+recall[i])
+        if(denom == 0):
+            f1_score[i] = 0
+        else:
+            f1_score[i] = 2*((precision[i]*recall[i])/denom)
+    if(len(f1_score)==0):
+        macro_f1_score = 0
+    else:
+        macro_f1_score = sum(f1_score)/len(f1_score)
     return macro_f1_score
 
 def micro_f1(agg_precision,agg_recall):
-    f1_score = 2*((agg_precision*agg_recall)/(agg_precision+agg_recall))
+    denom = (agg_precision+agg_recall)
+    if(denom == 0):
+        f1_score =0
+    else:
+        f1_score = 2*((agg_precision*agg_recall)/denom)
     return f1_score
 
 def weighted_f1_score(class_precision,weight):
     weighted_val = [0] * len(class_precision)
     for i in range(0,len(class_precision)):
         weighted_val[i] = class_precision[i] * weight[i]
-    f1_score = sum(weighted_val)/sum(weight)
+    if(sum(weight)==0):
+        f1_score = 0
+    else:
+        f1_score = sum(weighted_val)/sum(weight)
     return f1_score
 
 def macro_tpr_fpr(tp,tn,fp,fn,recall=0):
@@ -215,7 +256,11 @@ def macro_tpr_fpr(tp,tn,fp,fn,recall=0):
         if(fp[i]==0):
             fpr[i] =0
         else:
-            fpr[i] = fp[i]/(fp[i]+tn[i])
+            denom = (fp[i]+tn[i])
+            if(denom ==0):
+                fpr[i] = 0
+            else:
+                fpr[i] = fp[i]/denom
     return tpr,fpr
 
 def micro_tpr_fpr(agg_tp,agg_tn,agg_fp,agg_fn,recall=0):
@@ -226,7 +271,11 @@ def micro_tpr_fpr(agg_tp,agg_tn,agg_fp,agg_fn,recall=0):
     if(agg_fp==0):
         fpr =0
     else:
-        fpr = agg_fp/(agg_fp+agg_tn)
+        denom = (agg_fp+agg_tn)
+        if(denom == 0):
+            fpr = 0
+        else:
+            fpr = agg_fp/denom
     return tpr,fpr
 
 def micro_auc(tpr,fpr):
@@ -236,14 +285,20 @@ def macro_auc(tpr,fpr):
     class_auc = [0] * len(tpr)
     for i in range(0,len(tpr)):
         class_auc[i] = np.trapezoid([tpr[i]],[fpr[i]])
-    macro_auc = sum(class_auc)/len(class_auc)
+    if(len(class_auc)==0):
+        macro_auc =0
+    else:
+        macro_auc = sum(class_auc)/len(class_auc)
     return class_auc,macro_auc
 
 def weighted_auc(class_precision,weight):
     weighted_val = [0] * len(class_precision)
     for i in range(0,len(class_precision)):
         weighted_val[i] = class_precision[i] * weight[i]
-    auc = sum(weighted_val)/sum(weight)
+    if(sum(weight)==0):
+        auc =0
+    else:
+        auc = sum(weighted_val)/sum(weight)
     return auc
 
 def aggregated_confusion_values(tp,tn,fp,fn):

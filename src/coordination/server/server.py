@@ -24,19 +24,18 @@ def get_model(model_id):
 
 @bp.route('/upload-model', methods=['POST'])
 def upload_model():
+    #print("HEre")
     if "model" not in request.files:
-        return "No model", 400
-    
+        return "No model", 400    
     model_data = request.files["model"]
     client_id = request.form.get("client_id")
     model_id = request.form.get("model_id")
+    print("Recieved client model from : ",client_id)
 
     try:
         # validate model
-
-
         with CoordinationDB(current_app.config["DATAPATH"]) as db:
-            db.update_client_mId(client_id, model_id)
+            db.flag_client_training(client_id, model_id,1)
             db.add_client_model(client_id, model_id)
             filepath = db.save_client_model(current_app.instance_path, client_id, model_id)
 
@@ -61,18 +60,17 @@ def ping_server():
     try:
         client_resp = ClientRequest(data)
         hyperparameters = None
+        #print("Establishing DB connection")
         with CoordinationDB(current_app.config["DATAPATH"]) as db:
             if not db.client_exists(client_resp.client_id):
                 db.add_client(client_resp.client_id, client_resp.model_id, client_resp.state.value)
             # Get current round
             current_round = db.get_current_round()
-            
             # If current round is none or the model is currently aggregating do not update the client script
             if current_round is None:
                 client = db.get_client(client_resp.client_id)
-                response = CoordinationResponse(client)
+                response = CoordinationResponse(client_id=client.client_id, model_id=client.model_id, state=client.state,hyperparameters=None)
                 return jsonify(asdict(response)), 200
-            
             current_model_id = db.get_current_model_id()
             if client_resp.model_id != current_model_id:
                 db.cursor.execute("UPDATE clients SET model_id = ?, has_trained = ? WHERE client_id = ?", (current_model_id, 0, client_resp.client_id))
@@ -83,13 +81,11 @@ def ping_server():
                 db.conn.commit()
             
             # Check if the model should be training
-
             client = db.get_client(client_resp.client_id)
 
             if not client.has_trained and not current_round.is_aggregating:
                 client.state = 'TRAIN'
                 hyperparameters = Hyperparameters(learning_rate=current_round.learning_rate)
-
             response = CoordinationResponse(
                 client_id=client.client_id,
                 model_id=client.model_id,
@@ -105,6 +101,7 @@ def ping_server():
 
 @bp.route('/initialize', methods=['POST'])
 def init_training():
+    print("Start training")
     """
     Route for initializing a training session.
     """
