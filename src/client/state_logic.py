@@ -31,11 +31,11 @@ def communicate_with_server(cfg: TrainingConfig) -> CoordinationServerResponse:
 
 def get_new_model(server_address: str, model_id: str) -> requests.Response:
     route = server_address + f"/training/get_model/{model_id}"
-    logger.info(("Retrieving new mode")
+    logger.info("Retrieving new mode")
     #rint("Retrieving new model")
     response = requests.get(route)
     #print("Got model")
-    logger.info(("Updated model")
+    logger.info("Updated model")
     response.raise_for_status()
 
     return response
@@ -95,7 +95,7 @@ def coordinate_with_server(config: TrainingConfig):
             model.load_state_dict(torch.load(config.model_path, weights_only=True))
             optimizer = torch.optim.AdamW(model.parameters(), response.hyperparameters.learning_rate)
             dataloader = DataLoader(HARSDataset(config.train_path), batch_size=2, shuffle=True)
-            model.fit(dataloader, optimizer, train=True)
+            model.fit(dataloader, optimizer, train=True,config_key = config.client_id)
             # save model
             torch.save(model.state_dict(), config.model_path)
             # Send model file back to server
@@ -106,7 +106,7 @@ def coordinate_with_server(config: TrainingConfig):
         
     except Exception as e:
         #print(f"Failed to ping coordination server: {e}")
-        logger.info("Failed to piong coordination server{e})"
+        logger.info("Failed to piong coordination server: {e}")
     finally:
         if config.current_state != ClientState.TEARDOWN:
             threading.Timer(config.wait_time, coordinate_with_server, args=[config]).start()
