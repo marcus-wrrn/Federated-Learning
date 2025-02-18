@@ -1,7 +1,7 @@
 import os
 from flask import Flask
 from flcore.models.basic import HARSModel
-from flcore import logger 
+from flcore.logger import server_logger
 import logging
 import threading
 #import check_database

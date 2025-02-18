@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 from torch.optim import AdamW
 import io
 import gzip
-import logger 
+from logger import client_logger
 
 class HARSNet(nn.Module):
     """Basic model for the HARS dataset"""

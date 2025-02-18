@@ -5,7 +5,7 @@ import torch
 from torch.utils.data import DataLoader
 from flcore.models.basic import HARSModel
 from flcore.data_handling.datasets import HARSDataset
-from flcore import logger
+from flcore.logger import client_logger
 #import json
 
 def communicate_with_server(cfg: TrainingConfig) -> CoordinationServerResponse:
@@ -31,11 +31,11 @@ def communicate_with_server(cfg: TrainingConfig) -> CoordinationServerResponse:
 
 def get_new_model(server_address: str, model_id: str) -> requests.Response:
     route = server_address + f"/training/get_model/{model_id}"
-    logger.info("Retrieving new mode")
+    client_logger.info("Retrieving new mode")
     #rint("Retrieving new model")
     response = requests.get(route)
     #print("Got model")
-    logger.info("Updated model")
+    client_logger.info("Updated model")
     response.raise_for_status()
 
     return response
@@ -65,7 +65,7 @@ def cast_string_client_state(enum_class, value):
 
 def coordinate_with_server(config: TrainingConfig):
     try:
-        logger.info("Communicating with server")
+        client_logger.info("Communicating with server")
         #print("Communication with server")
         response = communicate_with_server(config)
         if response.client_id != config.client_id:
@@ -88,7 +88,7 @@ def coordinate_with_server(config: TrainingConfig):
         # If in training mode start training
         if config.current_state == ClientState.TRAIN:
             #print("Starting Training")
-            logger.info("Starting to train")
+            client_logger.info("Starting to train")
             device = torch.device("cuda" if torch.cuda.is_available() and config.cuda else "cpu")
             model = HARSModel(device)
 
@@ -100,13 +100,13 @@ def coordinate_with_server(config: TrainingConfig):
             torch.save(model.state_dict(), config.model_path)
             # Send model file back to server
             #print("Uploading Model")
-            logger.info("Uploading model")
+            client_logger.info("Uploading model")
             upload_model(config)
 
         
     except Exception as e:
         #print(f"Failed to ping coordination server: {e}")
-        logger.info("Failed to piong coordination server: {e}")
+        client_logger.info("Failed to piong coordination server: {e}")
     finally:
         if config.current_state != ClientState.TEARDOWN:
             threading.Timer(config.wait_time, coordinate_with_server, args=[config]).start()
