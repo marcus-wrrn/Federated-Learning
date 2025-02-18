@@ -13,14 +13,15 @@ import datetime
 import string
 import random
 import hashlib
-
+from flcore import logger
 
 def download_model(server_url: str, client_id: str):
     if not server_url.startswith('http://') and not server_url.startswith('https://'):
         server_url = 'http://' + server_url
     
     response = requests.get(f'{server_url}/get_model')
-    print("Got model")
+    logger.info("Recieved response, got model")
+    #print("Got model")
     client_folder = f'client{client_id}'
 
     os.makedirs(client_folder, exist_ok=True)
@@ -28,7 +29,8 @@ def download_model(server_url: str, client_id: str):
 
     with open(global_model_path, 'wb') as f:
         f.write(response.content)
-    print("Saved model")
+    #print("Saved model")
+    logger.info("Saving model")
     global_model_state = torch.load(global_model_path, map_location='cpu', weights_only=True)
 
     return global_model_state
