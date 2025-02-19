@@ -149,7 +149,7 @@ def get_key():
 #         # Wait for the server to complete aggregation
 #         wait_for_aggregation(args.server_url)
 
-def create_client(train_path_in,server_url_in,instance_path_in,cuda_in,log_path):
+def create_client(train_path_in,server_url_in,instance_path_in,cuda_in,log_path=None):
     print("Creating client")
     cfg = TrainingConfig(
         train_path = train_path_in, 

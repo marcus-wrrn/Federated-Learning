@@ -105,8 +105,8 @@ def coordinate_with_server(config: TrainingConfig):
 
         
     except Exception as e:
-        #print(f"Failed to ping coordination server: {e}")
-        client_logger.info("Failed to piong coordination server: {e}")
+        #print(f"Printstatement : Failed to ping coordination server: {e}")
+        client_logger.info(f"Failed to ping coordination server: {e}")
     finally:
         if config.current_state != ClientState.TEARDOWN:
             threading.Timer(config.wait_time, coordinate_with_server, args=[config]).start()

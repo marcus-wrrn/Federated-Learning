@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 from torch.optim import AdamW
 import io
 import gzip
-from logger import client_logger
+from flcore.logger import client_logger
 
 class HARSNet(nn.Module):
     """Basic model for the HARS dataset"""
@@ -49,11 +49,11 @@ class HARSModel(nn.Module):
 
         NOTE: use function with torch.no_grad when evaluating to save on device memory
         """
-        logger.info("Training client {}: ".format(client_key))
+        client_logger.info("Training client {}: ".format(client_key))
         total_loss = 0.0
         for i, (feat, label) in enumerate(data_load):
             if not i % 100 and i:
-                logger.info("Current loss {}".format(total_loss/i))
+                client_logger.info("Current loss {}".format(total_loss/i))
                 #print(f"Current loss: {total_loss / i}")
 
             feat: Tensor = feat.to(self.device)
