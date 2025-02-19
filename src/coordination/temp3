@@ -1,6 +1,6 @@
 from server import create_app
 import argparse
-
+from flcore.logger import setup_server_logger
 parser = argparse.ArgumentParser(description="A script to start a local coordination server for testing")
 parser.add_argument('-ip',type = str,help ="Ip address")
 args = parser.parse_args()

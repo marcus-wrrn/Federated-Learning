@@ -1,7 +1,7 @@
 import os
 from flask import Flask
 from flcore.models.basic import HARSModel
-from flcore.logger import server_logger
+from flcore.logger import server_logger, setup_server_logger
 import logging
 import threading
 #import check_database
@@ -21,7 +21,9 @@ def create_app(test_config=None):
         NUM_CLIENTS = 2, # TODO: Should eventually be removed to allow for a dynamic number of clients
         GLOBAL_BIN_PATH = os.path.join(app.instance_path, "global_model.bin")
     )
-    app.logger.hanlders = logger.handlers
+    server_logger = setup_server_logger(app.instance_path)
+    server_logger.info("Starting up server")
+    app.logger.hanlders = server_logger.handlers
     app.logger.setLevel(logging.DEBUG)
 
     #print("Database path : ")

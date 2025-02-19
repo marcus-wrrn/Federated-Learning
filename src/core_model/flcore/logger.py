@@ -1,7 +1,7 @@
 import logging
 import os 
 
-def setup_logger(name,log_file,path,level=logging.DEBUG):
+def config_logger(name,log_file,path,level=logging.DEBUG):
 
     ## SETUP LOGGER 
     logger = logging.getLogger(name)
@@ -31,6 +31,20 @@ def setup_logger(name,log_file,path,level=logging.DEBUG):
     ## ADD HANDLERS TO LOGGER 
     logger.addHandler(file_handler)
     logger.addHandler(console_handler)
+    return logger
     
-server_logger = setup_logger("server","server.log",path=os.getcwd(),level=logging.DEBUG)
-client_logger = setup_logger("client","client.log",path = os.getcwd(),level=logging.DEBUG)
+def setup_server_logger(path):
+    
+    if server_logger.hasHandlers():
+        return server_logger
+    else :
+        server_logger = config_logger("server","server.log",path,level=logging.DEBUG)
+
+def setup_client_logger(path):
+    if client_logger.hasHandlers():
+        return client_logger
+    else :
+        client_logger = config_logger("client","client.log",path,level=logging.DEBUG)
+
+server_logger = setup_server_logger()
+client_logger = setup_client_logger()

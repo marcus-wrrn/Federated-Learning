@@ -103,6 +103,7 @@ def ping_server():
 @bp.route('/initialize', methods=['POST'])
 def init_training():
     #print("Start training")
+    current_app.logger.info("New Super round")
     current_app.logger.info("Start training")
     """
     Route for initializing a training session.

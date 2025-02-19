@@ -68,6 +68,8 @@ def check_database():
 
                 max_round = db.get_max_rounds()
                 db.update_aggregate(0)
+                current_app.logger.info("Checking if done training (max round hit)")
+                current_app.logger.debug("current round: {}, current + 1 : {}. max : {}".format(cur_round.current_round,cur_round.current_round+1,max_round[0]))
                 if(cur_round.current_round+1 <= max_round[0]):
                     # implement new round logic
                     db.update_round()
@@ -78,10 +80,12 @@ def check_database():
                     #path = os.path.join(current_app.instance_path, f"super_round_{new_round.super_round_id}/training_round_{new_round.round_id}/{new_model_id}.pth")
                     path = db.get_model_path(current_app.instance_path,new_model_id)
                     torch.save(model.state_dict(), path)
+                    current_app.logger.info("Starting training round {}".format(new_round.current_round))
                 else:
                     current_app.logger.info("Max rounds has been hit. Training done")                    
                     db.cursor.execute("DELETE FROM training_config WHERE id = 1")
                     finished_agg = 1
+                
 
 
                 #print("Finished aggregating ")
