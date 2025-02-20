@@ -14,7 +14,8 @@ bp = Blueprint("training", __name__, url_prefix="/training")
 def get_model(model_id):
     with CoordinationDB(current_app.config["DATAPATH"]) as db:
         path = db.get_model_path(current_app.instance_path, model_id)
-        print(path)
+        #print(path)
+        current_app.logger.info("Getting model to {}".format(path))
         if not path:
             return "Model does not exist", 404
         if not os.path.exists(path):
@@ -30,8 +31,8 @@ def upload_model():
     model_data = request.files["model"]
     client_id = request.form.get("client_id")
     model_id = request.form.get("model_id")
-    print("Recieved client model from : ",client_id)
-
+    #print("Recieved client model from : ",client_id)
+    current_app.logger.info("Received client model from : {}",client_id)
     try:
         # validate model
         with CoordinationDB(current_app.config["DATAPATH"]) as db:
@@ -101,7 +102,9 @@ def ping_server():
 
 @bp.route('/initialize', methods=['POST'])
 def init_training():
-    print("Start training")
+    #print("Start training")
+    current_app.logger.info("New Super round")
+    current_app.logger.info("Start training")
     """
     Route for initializing a training session.
     """
@@ -117,7 +120,8 @@ def init_training():
                 client_threshold=data["client_threshold"], 
                 learning_rate= data["learning_rate"]
             )
-            print("Round initialized")
+            current_app.logger.info("Round initializer")
+            #print("Round initialized")
 
             round = db.get_current_round()
             if round is None:
@@ -138,6 +142,7 @@ def init_training():
 def connected():
     print("The following device has connected to the network : "+request.remote_addr)
     print("End message")
+    
     return"<p> YOU ARE CONNECTED ! <p>"
 
 

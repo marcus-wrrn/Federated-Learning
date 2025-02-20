@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="flcore",
-    version="0.0.2",
+    version="0.0.3",
     description="Core Model functionality for the project",
     author="Marcus Warren",
     author_email="marcuswrrn@gmail.com",
