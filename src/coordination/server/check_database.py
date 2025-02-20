@@ -8,7 +8,8 @@ from flcore.models.basic import HARSModel
 from server.validation import validation
 
 def check_database():
-    print("Starting database check")
+    current_app.logger.info("Starting database check")
+    #print("Starting database check")
     finished_agg = 0
     while True:       
         with CoordinationDB(current_app.config["DATAPATH"]) as db:
@@ -16,11 +17,13 @@ def check_database():
             cur_round = db.get_current_round()
             if (cur_round is None or finished_agg): continue
 
-            print("Training round: ",cur_round.current_round)
+            #print("Training round: ",cur_round.current_round)
+            current_app.logger.info("Training round : {}".format(cur_round.current_round))
             client_threshold = db.get_round_threshold()
             client_count = db.get_client_round_num()
             if(client_count >= client_threshold):
-                print("Aggregating")
+                #print("Aggregating")
+                current_app.logger.info("Aggregating")
                 db.update_aggregate(1)
                 cur_model_id = db.get_model_id(cur_round.current_round)
 
@@ -32,8 +35,9 @@ def check_database():
                 for c_idx in range (0,len(client_ids)):
                     
                     client_path = db.get_client_model(current_app.instance_path,client_ids[c_idx][0],cur_model_id)
-                    print("Client id: ",client_ids[c_idx][0])
-                    print("Loading : ",client_path)
+                    current_app.logger.info("Loading Client ID : {} . Loading file {}".format(client_ids[c_idx][0],client_path))
+                    #print("Client id: ",client_ids[c_idx][0])
+                    #print("Loading : ",client_path)
                     client_model = HARSModel("cpu")
                     client_model.load_state_dict(torch.load(client_path))
                     client_state = client_model.state_dict()
@@ -64,6 +68,8 @@ def check_database():
 
                 max_round = db.get_max_rounds()
                 db.update_aggregate(0)
+                current_app.logger.info("Checking if done training (max round hit)")
+                current_app.logger.debug("current round: {}, current + 1 : {}. max : {}".format(cur_round.current_round,cur_round.current_round+1,max_round[0]))
                 if(cur_round.current_round+1 <= max_round[0]):
                     # implement new round logic
                     db.update_round()
@@ -74,11 +80,12 @@ def check_database():
                     #path = os.path.join(current_app.instance_path, f"super_round_{new_round.super_round_id}/training_round_{new_round.round_id}/{new_model_id}.pth")
                     path = db.get_model_path(current_app.instance_path,new_model_id)
                     torch.save(model.state_dict(), path)
+                    current_app.logger.info("Starting training round {}".format(new_round.current_round))
                 else:
-                    print("Max rounds has been hit")
-                    print("Training done")
+                    current_app.logger.info("Max rounds has been hit. Training done")                    
                     db.cursor.execute("DELETE FROM training_config WHERE id = 1")
                     finished_agg = 1
+                
 
 
                 #print("Finished aggregating ")

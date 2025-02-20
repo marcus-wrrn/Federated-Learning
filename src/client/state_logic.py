@@ -5,6 +5,7 @@ import torch
 from torch.utils.data import DataLoader
 from flcore.models.basic import HARSModel
 from flcore.data_handling.datasets import HARSDataset
+from flcore.logger import client_logger
 #import json
 
 def communicate_with_server(cfg: TrainingConfig) -> CoordinationServerResponse:
@@ -30,9 +31,11 @@ def communicate_with_server(cfg: TrainingConfig) -> CoordinationServerResponse:
 
 def get_new_model(server_address: str, model_id: str) -> requests.Response:
     route = server_address + f"/training/get_model/{model_id}"
-    print("Retrieving new model")
+    client_logger.info("Retrieving new mode")
+    #rint("Retrieving new model")
     response = requests.get(route)
-    print("Got model")
+    #print("Got model")
+    client_logger.info("Updated model")
     response.raise_for_status()
 
     return response
@@ -62,7 +65,8 @@ def cast_string_client_state(enum_class, value):
 
 def coordinate_with_server(config: TrainingConfig):
     try:
-        print("Communication with server")
+        client_logger.info("Communicating with server")
+        #print("Communication with server")
         response = communicate_with_server(config)
         if response.client_id != config.client_id:
             # change client id
@@ -83,23 +87,26 @@ def coordinate_with_server(config: TrainingConfig):
 
         # If in training mode start training
         if config.current_state == ClientState.TRAIN:
-            print("Starting Training")
+            #print("Starting Training")
+            client_logger.info("Starting to train")
             device = torch.device("cuda" if torch.cuda.is_available() and config.cuda else "cpu")
             model = HARSModel(device)
 
             model.load_state_dict(torch.load(config.model_path, weights_only=True))
             optimizer = torch.optim.AdamW(model.parameters(), response.hyperparameters.learning_rate)
             dataloader = DataLoader(HARSDataset(config.train_path), batch_size=2, shuffle=True)
-            model.fit(dataloader, optimizer, train=True)
+            model.fit(dataloader, optimizer, train=True,config_key = config.client_id)
             # save model
             torch.save(model.state_dict(), config.model_path)
             # Send model file back to server
-            print("Uploading Model")
+            #print("Uploading Model")
+            client_logger.info("Uploading model")
             upload_model(config)
 
         
     except Exception as e:
-        print(f"Failed to ping coordination server: {e}")
+        #print(f"Printstatement : Failed to ping coordination server: {e}")
+        client_logger.info(f"Failed to ping coordination server: {e}")
     finally:
         if config.current_state != ClientState.TEARDOWN:
             threading.Timer(config.wait_time, coordinate_with_server, args=[config]).start()

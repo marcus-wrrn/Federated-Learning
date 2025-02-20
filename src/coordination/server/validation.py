@@ -12,6 +12,7 @@ import torch.utils.data.dataloader
 import torch.nn as nn
 import datetime
 import csv 
+from flcore.logger import server_logger
 
 class model_results:
     def __init__(self,accuracy_in,tp_in,tn_in,fp_in,fn_in,recall,precision,f1):
@@ -36,16 +37,19 @@ class model_results:
 
 def validation(device,data_path='',model='',batchsize=5,threshold=0.5,save_val=0):
     ## LOAD MODEL ## 
-    print("Running validation ...")
+    server_logger.idle("Running validation ...")
+    #print("Running validation ...")
     device = device
     if torch.cuda.is_available():
         device = "cuda"
     if(data_path == ''):
         data_path = '../data/test.csv'
     if(type(model)== str):
-        print("Input is a string")
+        #print("Input is a string")
+        server_logger.info("Input is a string")
         if(model == ''):
             print("Error a model needs to be inputted")
+            server_logger.info("Error : a model needs to be inputted")
         elif(os.path.isfile(model)):
             print("Load model from file")
             # Need to see what are the names of the models as they might just all be model.py 
@@ -55,7 +59,8 @@ def validation(device,data_path='',model='',batchsize=5,threshold=0.5,save_val=0
             
             model = load_HARSModel(device,model)
     elif(not isinstance(model,nn.Module)):
-        print("Error input is not a model/n")
+        #print("Error input is not a model/n")
+        server_logger.info("Error input is no a model")
         return -1
     
     ## SET UP MODEL ##
@@ -87,7 +92,8 @@ def validation(device,data_path='',model='',batchsize=5,threshold=0.5,save_val=0
         tp,fp,fn,tn = get_model_true_false(pred_label,label_np,val_set.class_list,tp,fp,fn,tn)
         
     model_accuracy = total_correct/total_test 
-    print("Accuracy: {},".format(model_accuracy))
+    #print("Accuracy: {},".format(model_accuracy))
+    server_logger.info("Accuracy: {},".format(model_accuracy))
 
     agg_tp, agg_fp,agg_fn,agg_tn = aggregated_confusion_values(tp,fp,fn,tn)
     class_weights = weights(tp,tn)
@@ -97,7 +103,8 @@ def validation(device,data_path='',model='',batchsize=5,threshold=0.5,save_val=0
     class_recall,recall_macro = get_recall(tp,fn)
     recall_weight = weighted_recall(class_recall,class_weights)
 
-    print("Micro Recall {}, Macro Recall {}, Weighted Recall {}\n".format(recall_micro,recall_macro,recall_weight))
+    #print("Micro Recall {}, Macro Recall {}, Weighted Recall {}\n".format(recall_micro,recall_macro,recall_weight))
+    server_logger.info("Micro Recall {}, Macro Recall {}, Weighted Recall {}\n".format(recall_micro,recall_macro,recall_weight))
 
     ## Precision
     precision_micro = micro_precision(agg_tp,agg_fp)
@@ -105,14 +112,14 @@ def validation(device,data_path='',model='',batchsize=5,threshold=0.5,save_val=0
     precision_weight = weighted_precision(class_precision,class_weights)
 
     print("Micro Precision {}, Macro Precision {}, Weighted Precision {}\n".format(precision_micro,precision_macro,precision_weight))
-
+    server_logger.info("Micro Precision {}, Macro Precision {}, Weighted Precision {}\n".format(precision_micro,precision_macro,precision_weight))
     ## F1
     f1_micro = micro_f1(precision_micro,recall_micro)
     f1_macro = macro_f1(class_precision,class_recall)
     f1_weight = weighted_f1_score(class_precision,class_recall)
 
     print("F1 Precision {}, F1 Precision {}, F1 Precision {}\n".format(f1_micro,f1_macro,f1_weight))
-
+    server_logger.info("F1 Precision {}, F1 Precision {}, F1 Precision {}\n".format(f1_micro,f1_macro,f1_weight))
     ## AUC
     tpr_macro, fpr_macro = macro_tpr_fpr(tp,tn,fp,fn,class_recall)
     tpr_micro, fpr_micro = micro_tpr_fpr(agg_tp,agg_tn,agg_fp,agg_fn,recall_micro)    
@@ -120,7 +127,7 @@ def validation(device,data_path='',model='',batchsize=5,threshold=0.5,save_val=0
     auc_micro = micro_auc(tpr_micro,fpr_micro)
     auc_weight = weighted_auc(class_auc,class_weights)
     print("AUC Precision {}, AUC Precision {}, AUC Precision {}\n".format(auc_micro,auc_macro,auc_weight))
-
+    server_logger.info("AUC Precision {}, AUC Precision {}, AUC Precision {}\n".format(auc_micro,auc_macro,auc_weight))
     results = model_results(model_accuracy,tp,fp,fn,tn,recall_macro,precision_macro,f1_macro)
     if(save_val):
         with open(savefile,"w",newline="") as file:
