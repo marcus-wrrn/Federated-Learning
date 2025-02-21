@@ -168,9 +168,9 @@ def create_client(train_path_in,server_url_in,instance_path_in,cuda_in,log_path=
 def start_training(path):
     print("Starting training")
     data = {
-        "max_rounds" : 5,
-        "client_threshold" : 3,
-        "learning_rate" : 0.01
+        "max_rounds" : 20,
+        "client_threshold" : 10,
+        "learning_rate" : 0.0000001
     }
     route = path +"/training/initialize"
     response = requests.post(route,json=data)
