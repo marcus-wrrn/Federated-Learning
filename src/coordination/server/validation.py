@@ -143,20 +143,26 @@ def validation(device,data_path='',model='',batchsize=5,threshold=0.5,save_val=0
         file.close()   
     return results
     
-def get_tpr_fpr(recall=0,tp=0,tn=0,fp=0,fn=0,ground_truth=[],pred_label=[],class_list=[]):    
-    if(not ground_truth and not pred_label and not class_list and recall  ==0 and tp ==0 and tn ==0 and fp == 0 and fn ==0):
-        tp =[]
-        fp =[]
-        tn=[]
-        fn = []
-        tp,fp,fn,tn = get_model_true_false(pred_label,label_np,val_set.class_list,tp,fp,fn,tn)
-    if(recall == 0 and tp != 0 and tn != 0 and fp != 0 and fn != 0):
-        tpr = tp/tp+fn 
-    else:
-        trp = recall
+def get_tpr_fpr(recall=0, tp=0, tn=0, fp=0, fn=0, ground_truth=None, pred_label=None, class_list=None):
+    # Default None to empty lists (safer than using mutable defaults)
+    ground_truth = ground_truth if ground_truth is not None else []
+    pred_label = pred_label if pred_label is not None else []
+    class_list = class_list if class_list is not None else []
 
-    fpr = fp/(fp+tn)
-    return tpr,fpr
+    # If all parameters are empty/zero, compute tp, fp, fn, tn from model
+    if not ground_truth and not pred_label and not class_list and recall == 0 and tp == 0 and tn == 0 and fp == 0 and fn == 0:
+        tp, fp, fn, tn = get_model_true_false(pred_label, ground_truth, class_list, [], [], [], [])
+
+    # Compute True Positive Rate (TPR)
+    if recall == 0 and tp != 0 and fn != 0:
+        tpr = tp / (tp + fn)  # Corrected calculation
+    else:
+        tpr = recall  # Use recall if provided
+
+    # Compute False Positive Rate (FPR)
+    fpr = fp / (fp + tn) if (fp + tn) != 0 else 0  # Avoid division by zero
+
+    return tpr, fpr
 
 def get_recall(tp,fn):
     recall = [0] * len(tp)
