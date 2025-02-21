@@ -41,12 +41,13 @@ def check_database():
                     
                     client_path = db.get_client_model(current_app.instance_path, client_ids[c_idx][0], cur_model_id)
                     current_app.logger.info("Loading Client ID : {} . Loading file {}".format(client_ids[c_idx][0],client_path))
-                    #print("Client id: ",client_ids[c_idx][0])
-                    #print("Loading : ",client_path)
+
                     client_model = HARSModel("cpu")
                     client_model.load_state_dict(torch.load(client_path))
+
                     client_state = client_model.state_dict()
                     client_list_states.append(client_state)
+
                     db.flag_client_training(client_ids[c_idx][0],cur_model_id,0)
 
                 aggregate_states = agg_model(client_list_states,cur_model.state_dict())
@@ -86,7 +87,7 @@ def check_database():
                     #new_model_id = db.get_model_id(new_round.round_id)
                     #path = os.path.join(current_app.instance_path, f"super_round_{new_round.super_round_id}/training_round_{new_round.round_id}/{new_model_id}.pth")
                     path = db.get_model_path(current_app.instance_path,new_model_id)
-                    torch.save(model.state_dict(), path)
+                    torch.save(aggregate_states, path)
                     current_app.logger.info("Starting training round {}".format(new_round.current_round))
                 else:
                     current_app.logger.info("Max rounds has been hit. Training done")                    
