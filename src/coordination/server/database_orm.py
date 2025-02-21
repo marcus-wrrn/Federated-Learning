@@ -105,6 +105,11 @@ class CoordinationDB:
             );
         ''')
 
+        self.cursor.execute("""
+            INSERT OR IGNORE INTO training_config (id, super_id, round_id) 
+            VALUES (1, NULL, NULL)
+        """)
+
         self.conn.commit()
 
     def add_client(self, client_id: str, model_id: str | None, current_state: str,  commit=True) -> None:
@@ -163,10 +168,7 @@ class CoordinationDB:
         """, (current_round_id, max_rounds, client_threshold))
         super_round_id = self.cursor.lastrowid
 
-        if self.current_round_id() is None:
-            self.cursor.execute("INSERT INTO training_config (super_id, round_id) VALUES (?, ?)", (super_round_id, current_round_id))
-        else:
-            self.cursor.execute("UPDATE training_config SET super_id = ?, round_id = ? WHERE id = 1", (super_round_id, current_round_id))
+        self.cursor.execute("UPDATE training_config SET super_id = ?, round_id = ? WHERE id = 1", (super_round_id, current_round_id))
         
         self.conn.commit()
 
@@ -175,6 +177,10 @@ class CoordinationDB:
         os.makedirs(path)
         path = os.path.join(path, f"training_round_{current_round_id}/")
         os.makedirs(path)
+    
+    def stop_training(self):
+        self.cursor.execute("UPDATE training_config SET super_id = null, round_id = null WHERE id = 1")
+        self.conn.commit()
 
     def create_model(self, round_id: int, commit=True) -> str:
         """Returns model ID"""
@@ -320,10 +326,12 @@ class CoordinationDB:
         self.cursor.execute("SELECT client_models.cId FROM model JOIN client_models ON model.model_id = client_models.mId WHERE round_id = ?",(current_round.current_round,) )
         results = self.cursor.fetchall()
         return results
+    
     def get_round_client_list2(self,model_Id):        
         self.cursor.execute("SELECT client_models.cId FROM client_models WHERE mId = ?",(model_Id,) )
         results = self.cursor.fetchall()
         return results
+    
     def get_client_model(self, instance_path: str, client_id: str, model_id: str) -> str:
         round_data = self.get_current_round()
         
@@ -333,6 +341,7 @@ class CoordinationDB:
         path = os.path.join(path, f"{client_id}.pth")
 
         return path
+    
     def get_max_rounds(self):
         current_round = self.current_round_id()
         self.cursor.execute("SELECT super_round.max_rounds FROM super_round WHERE current_round_id = ?",(current_round,))

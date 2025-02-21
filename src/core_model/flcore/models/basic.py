@@ -52,7 +52,10 @@ class HARSModel(nn.Module):
         client_logger.info("Training client {}: ".format(client_key))
         total_loss = 0.0
         for i, (feat, label) in enumerate(data_load):
-            if not i % 100 and i:
+            #client_logger.info("i : {}, i mod 100 {}, not logic {}, if logic {}".format(i,i%100,not i % 100 ,not i % 100 and i))
+            if  not i % 30 and i:
+                # logs every 30th loss
+                #print("HERE")
                 client_logger.info("Current loss {}".format(total_loss/i))
                 #print(f"Current loss: {total_loss / i}")
 

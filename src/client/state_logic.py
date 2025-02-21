@@ -47,10 +47,15 @@ def upload_model(cfg: TrainingConfig):
         "state": cfg.current_state.value,
         "model_id": cfg.model_id
     }
-
+    #print(cfg.client_id)
+    #print(cfg.current_state.value)
+    #print(cfg.model_id)
     with open(cfg.model_path, "rb") as fp:
         files = {"model": fp}
+        #print(files)
+        #print(route)
         response = requests.post(route, files=files, data=metadata)
+        #print(response)
     
     
 
@@ -63,28 +68,33 @@ def cast_string_client_state(enum_class, value):
     except ValueError:
         return None
 
-def coordinate_with_server(config: TrainingConfig):
+
+def coordinate_with_server(config: TrainingConfig,first_round=0):
     try:
         client_logger.info("Communicating with server")
         #print("Communication with server")
         response = communicate_with_server(config)
+        #print("Here1")
         if response.client_id != config.client_id:
             # change client id
             with open(config.client_id_path, "w") as fp:
                 fp.write(response.client_id)
-            config = response.client_id
-
+            config = response.client_id        
+        #print("Here2")        
+        #print("response model id: ",response.model_id)
+        #print("config model id : ",config.model_id)
         if response.model_id != config.model_id:
+            print("New model")
             # download new model
             config.model_id = response.model_id
             model_resp = get_new_model(config.host_ip, response.model_id)
             with open(config.model_path, "wb") as fp:
                 fp.write(model_resp.content)
-        
+        #print("Here3")
         # cast response state to Enum
         current_state = ClientState(response.state)
         config.current_state = current_state
-
+        #print("Here4")
         # If in training mode start training
         if config.current_state == ClientState.TRAIN:
             #print("Starting Training")
@@ -94,15 +104,22 @@ def coordinate_with_server(config: TrainingConfig):
 
             model.load_state_dict(torch.load(config.model_path, weights_only=True))
             optimizer = torch.optim.AdamW(model.parameters(), response.hyperparameters.learning_rate)
-            dataloader = DataLoader(HARSDataset(config.train_path), batch_size=2, shuffle=True)
-            model.fit(dataloader, optimizer, train=True,config_key = config.client_id)
+            batch_size = 2
+            dataloader = DataLoader(HARSDataset(config.train_path), batch_size=batch_size, shuffle=True)           
+            if not first_round:
+                first_round = 1
+                client_logger.info("Batch size {}".format(batch_size))
+
+            model.fit(dataloader, optimizer, train=True,client_key = config.client_id)
             # save model
+            #print("Mdel saved to : ",config.model_path)
             torch.save(model.state_dict(), config.model_path)
             # Send model file back to server
             #print("Uploading Model")
             client_logger.info("Uploading model")
             upload_model(config)
-
+            config.current_state = ClientState.IDLE
+        #print("Here5")
         
     except Exception as e:
         #print(f"Printstatement : Failed to ping coordination server: {e}")
