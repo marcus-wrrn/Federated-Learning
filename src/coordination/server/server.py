@@ -32,7 +32,7 @@ def upload_model():
     client_id = request.form.get("client_id")
     model_id = request.form.get("model_id")
     #print("Recieved client model from : ",client_id)
-    current_app.logger.info("Received client model from : {}",client_id)
+    current_app.logger.info("Received client model from : {}".format(client_id))
     try:
         # validate model
         with CoordinationDB(current_app.config["DATAPATH"]) as db:

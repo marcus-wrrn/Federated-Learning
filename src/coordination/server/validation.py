@@ -37,7 +37,7 @@ class model_results:
 
 def validation(device,data_path='',model='',batchsize=5,threshold=0.5,save_val=0):
     ## LOAD MODEL ## 
-    server_logger.idle("Running validation ...")
+    server_logger.info("Running validation ...")
     #print("Running validation ...")
     device = device
     if torch.cuda.is_available():
