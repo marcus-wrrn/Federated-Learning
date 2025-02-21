@@ -68,7 +68,8 @@ def cast_string_client_state(enum_class, value):
     except ValueError:
         return None
 
-def coordinate_with_server(config: TrainingConfig):
+
+def coordinate_with_server(config: TrainingConfig,first_round=0):
     try:
         client_logger.info("Communicating with server")
         #print("Communication with server")
@@ -103,8 +104,13 @@ def coordinate_with_server(config: TrainingConfig):
 
             model.load_state_dict(torch.load(config.model_path, weights_only=True))
             optimizer = torch.optim.AdamW(model.parameters(), response.hyperparameters.learning_rate)
-            dataloader = DataLoader(HARSDataset(config.train_path), batch_size=32, shuffle=True)
-            model.fit(dataloader, optimizer, train=True)
+            batch_size = 2
+            dataloader = DataLoader(HARSDataset(config.train_path), batch_size=batch_size, shuffle=True)           
+            if not first_round:
+                first_round = 1
+                client_logger.info("Batch size {}".format(batch_size))
+
+            model.fit(dataloader, optimizer, train=True,client_key = config.client_id)
             # save model
             #print("Mdel saved to : ",config.model_path)
             torch.save(model.state_dict(), config.model_path)

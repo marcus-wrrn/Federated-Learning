@@ -165,16 +165,20 @@ def create_client(train_path_in,server_url_in,instance_path_in,cuda_in,log_path=
     client_logger.info("Creating new client")
 
 
-def start_training(path):
+def start_training(path,data=None):
     print("Starting training")
-    data = {
-        "max_rounds" : 20,
-        "client_threshold" : 10,
-        "learning_rate" : 0.0000001
-    }
+    if data is None:
+        data = {
+            "max_rounds" : 20,
+            "client_threshold" : 10,
+            "learning_rate" : 0.0000001
+        }
     route = path +"/training/initialize"
     response = requests.post(route,json=data)
     response.raise_for_status()
+    client_logger.info("Max rounds {}".format(data[max_rounds]))
+    client_logger.info("Client threshold {}".format(data[client_threshold]))
+    client_logger.info("Learning rate {}".format(data[learning_rate]))
 
 if __name__ == "__main__":
     print("Creating a client")
