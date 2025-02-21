@@ -324,19 +324,23 @@ class CoordinationDB:
         return result
     
     def get_client_round_num(self):
-        # Get the number of clients currently in a trgit aining round 
-        current_round = self.get_current_round()
+        # Get the number of clients currently in a target training round 
+        model_id = self.get_current_model_id()
         
-        self.cursor.execute("SELECT COUNT(id) FROM model JOIN client_models ON model.model_id = client_models.mId WHERE round_id = ?",(current_round.current_round,) )
-        results = self.cursor.fetchone()
-        return results
+        self.cursor.execute("SELECT has_trained FROM clients WHERE model_id = ?", (model_id,))
+        results = self.cursor.fetchall()
+        count = 0
+        for res in results:
+            if res[0]: 
+                count += 1
+        return count
     
-    def update_aggregate(self,value):
+    def update_aggregate(self, value):
         current_round = self.current_round_id()
         self.cursor.execute("UPDATE train_round SET is_aggregating = ? WHERE round_id = ? ",(value,current_round,))
     
-    def get_round_client_list(self,model_Id):        
-        self.cursor.execute("SELECT client_models.cId FROM client_models WHERE mId = ?",(model_Id,) )
+    def get_round_client_list(self, model_Id):        
+        self.cursor.execute("SELECT client_models.cId FROM client_models WHERE mId = ?",(model_Id,))
         results = self.cursor.fetchall()
         return results
     
