@@ -88,6 +88,8 @@ class CoordinationDB:
                 current_round_id INTEGER,
                 max_rounds INTEGER NOT NULL,
                 client_threshold INTEGER NOT NULL,
+                step_size INTEGER DEFAULT NULL,
+                gamma REAL DEFAULT NULL,
                 FOREIGN KEY (current_round_id) REFERENCES train_round (round_id)
                     ON DELETE CASCADE ON UPDATE CASCADE
             );
@@ -154,7 +156,9 @@ class CoordinationDB:
                             instance_path: str,
                             max_rounds: int,
                             client_threshold: int,
-                            learning_rate: float):
+                            learning_rate: float,
+                            step_size: int,
+                            gamma: float):
         if not (max_rounds > 0 and client_threshold > 0):
             raise Exception(f"Max Rounds and Client Threshold must be above 0 got: max rounds: {max_rounds}, client threshold: {client_threshold}")
     
@@ -163,9 +167,9 @@ class CoordinationDB:
         current_round_id = self.cursor.lastrowid
 
         self.cursor.execute("""
-            INSERT INTO super_round (current_round_id, max_rounds, client_threshold)
-            VALUES (?, ?, ?)
-        """, (current_round_id, max_rounds, client_threshold))
+            INSERT INTO super_round (current_round_id, max_rounds, client_threshold, step_size, gamma)
+            VALUES (?, ?, ?, ?, ?)
+        """, (current_round_id, max_rounds, client_threshold, step_size, gamma))
         super_round_id = self.cursor.lastrowid
 
         self.cursor.execute("UPDATE training_config SET super_id = ?, round_id = ? WHERE id = 1", (super_round_id, current_round_id))
@@ -232,7 +236,7 @@ class CoordinationDB:
     def get_current_round(self) -> TrainRound | None:
         self.cursor.execute("""
             SELECT sr.id, tr.round_id, tr.current_round, sr.max_rounds, sr.client_threshold, 
-                tr.learning_rate, tr.is_aggregating
+                tr.learning_rate, tr.is_aggregating, sr.step_size, sr.gamma
             FROM train_round tr
             JOIN training_config tc ON tr.round_id = tc.round_id
             JOIN super_round sr ON tc.super_id = sr.id
@@ -250,7 +254,9 @@ class CoordinationDB:
             max_rounds=result[3],  
             client_threshold=result[4],  
             learning_rate=result[5],
-            is_aggregating=result[6]
+            is_aggregating=result[6],
+            step_size=result[7],
+            gamma=result[8]
         )
     
     def save_client_model(self, instance_path: str, client_id: str, model_id: str) -> str:
@@ -281,14 +287,20 @@ class CoordinationDB:
         return None
     
     def update_round(self):
-        current_round = self.get_current_round()
-        # increment current round
-        self.cursor.execute("UPDATE train_round SET current_round = ? WHERE round_id = ?", (current_round.current_round + 1, current_round.round_id))
-        self.cursor.execute("INSERT INTO train_round (current_round, learning_rate) VALUES (?, ?)", (current_round.current_round + 1, current_round.learning_rate))
-        self.cursor.execute("UPDATE training_config SET round_id =?",(current_round.round_id+1,))
-        self.cursor.execute("UPDATE super_round SET current_round_id =?",(current_round.round_id+1,))
+        curr_round = self.get_current_round()
+        # Determine new learning rate
+        next_round = curr_round.current_round + 1
+        learning_rate = curr_round.learning_rate * (curr_round.gamma ** (next_round // curr_round.step_size))
         
-        # create new model
+        # Create new training round with updated learning rate
+        self.cursor.execute("INSERT INTO train_round (current_round, learning_rate) VALUES (?, ?)", (next_round, learning_rate))
+        row_id = self.cursor.lastrowid # fetch round id for the train round
+
+        # Update training config and super_round to point to the next training round
+        self.cursor.execute("UPDATE training_config SET round_id =?",(row_id,))
+        self.cursor.execute("UPDATE super_round SET current_round_id = ? WHERE id = ?", (row_id, curr_round.super_round_id))
+
+        self.conn.commit()
 
     def close(self):
         self.conn.close()
@@ -310,6 +322,7 @@ class CoordinationDB:
         self.cursor.execute("SELECT super_round.client_threshold FROM super_round WHERE current_round_id = ?",(current_round,))
         result = self.cursor.fetchone()
         return result
+    
     def get_client_round_num(self):
         # Get the number of clients currently in a trgit aining round 
         current_round = self.get_current_round()
@@ -317,17 +330,12 @@ class CoordinationDB:
         self.cursor.execute("SELECT COUNT(id) FROM model JOIN client_models ON model.model_id = client_models.mId WHERE round_id = ?",(current_round.current_round,) )
         results = self.cursor.fetchone()
         return results
+    
     def update_aggregate(self,value):
         current_round = self.current_round_id()
         self.cursor.execute("UPDATE train_round SET is_aggregating = ? WHERE round_id = ? ",(value,current_round,))
-
-    def get_round_client_list(self):
-        current_round = self.get_current_round()
-        self.cursor.execute("SELECT client_models.cId FROM model JOIN client_models ON model.model_id = client_models.mId WHERE round_id = ?",(current_round.current_round,) )
-        results = self.cursor.fetchall()
-        return results
     
-    def get_round_client_list2(self,model_Id):        
+    def get_round_client_list(self,model_Id):        
         self.cursor.execute("SELECT client_models.cId FROM client_models WHERE mId = ?",(model_Id,) )
         results = self.cursor.fetchall()
         return results

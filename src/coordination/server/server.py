@@ -32,7 +32,7 @@ def upload_model():
     client_id = request.form.get("client_id")
     model_id = request.form.get("model_id")
     #print("Recieved client model from : ",client_id)
-    current_app.logger.info("Received client model from : {}",client_id)
+    current_app.logger.info("Received client model from : {}".format(client_id))
     try:
         # validate model
         with CoordinationDB(current_app.config["DATAPATH"]) as db:
@@ -110,7 +110,7 @@ def init_training():
     """
     data = request.get_json()
     try:
-        if "max_rounds" not in data or "client_threshold" not in data or "learning_rate" not in data:
+        if "max_rounds" not in data or "client_threshold" not in data or "learning_rate" not in data or "step_size" not in data or "gamma" not in data:
             raise Exception("Request missing required parameters")
         
         with CoordinationDB(current_app.config["DATAPATH"]) as db:
@@ -118,7 +118,9 @@ def init_training():
                 instance_path=current_app.instance_path,
                 max_rounds=data["max_rounds"], 
                 client_threshold=data["client_threshold"], 
-                learning_rate= data["learning_rate"]
+                learning_rate= data["learning_rate"],
+                step_size=data["step_size"],
+                gamma=data["gamma"]
             )
             current_app.logger.info("Round initializer")
             #print("Round initialized")

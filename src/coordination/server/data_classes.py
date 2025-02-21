@@ -24,6 +24,8 @@ class TrainRound:
     client_threshold: int
     learning_rate: float
     is_aggregating: bool
+    step_size: int
+    gamma: float
 
 @dataclass
 class Hyperparameters:
