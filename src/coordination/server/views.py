@@ -1,4 +1,4 @@
-from flask import request, jsonify, Blueprint, current_app
+from flask import request, jsonify, Blueprint, current_app, render_template
 from server.database_orm import CoordinationDB
 from dataclasses import asdict
 
@@ -16,3 +16,8 @@ def current_round():
     with CoordinationDB(current_app.config["DATAPATH"]) as db:
         round = db.get_current_round()
     return jsonify(asdict(round)), 200
+
+
+@bp.route('/', methods=['GET'])
+def home():
+    return render_template('index.html'), 200
