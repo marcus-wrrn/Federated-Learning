@@ -19,7 +19,6 @@ class ClientRequest:
 class TrainRound:
     super_round_id: int
     round_id: int
-    current_round: int
     max_rounds: int
     client_threshold: int
     learning_rate: float

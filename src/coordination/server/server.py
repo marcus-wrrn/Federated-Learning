@@ -72,7 +72,7 @@ def ping_server():
                 client = db.get_client(client_resp.client_id)
                 response = CoordinationResponse(client_id=client.client_id, model_id=client.model_id, state=client.state,hyperparameters=None)
                 return jsonify(asdict(response)), 200
-            current_model_id = db.get_current_model_id()
+            current_model_id = db.get_model_id(current_round.super_round_id, current_round.round_id)
             if client_resp.model_id != current_model_id:
                 db.cursor.execute("UPDATE clients SET model_id = ?, has_trained = ? WHERE client_id = ?", (current_model_id, 0, client_resp.client_id))
                 db.conn.commit()
@@ -109,6 +109,7 @@ def init_training():
     Route for initializing a training session.
     """
     data = request.get_json()
+    print(f"Data: {data}")
     try:
         if "max_rounds" not in data or "client_threshold" not in data or "learning_rate" not in data or "step_size" not in data or "gamma" not in data:
             raise Exception("Request missing required parameters")
@@ -126,11 +127,12 @@ def init_training():
             #print("Round initialized")
 
             round = db.get_current_round()
+            print(f"Learning rate: {round.learning_rate}")
             if round is None:
                 raise Exception("Round is none")
             
             model = HARSModel("cpu")
-            model_id = db.create_model(round.round_id)
+            model_id = db.create_model(super_id=round.super_round_id, round_id=round.round_id)
 
             # create round directory and current model
         path = os.path.join(current_app.instance_path, f"super_round_{round.super_round_id}/training_round_{round.round_id}/{model_id}.pth")
@@ -152,15 +154,4 @@ def connected():
     print("End message")
     
     return"<p> YOU ARE CONNECTED ! <p>"
-
-
-# TODO: Improve aggregation logic and move to seperate file
-def aggregate_models(client_states: dict) -> dict:
-    # Simple average of model parameters
-    global_model_state: dict = current_app.config["GLOBAL_MODEL"].state_dict()
-
-    new_state = {}
-    for key in global_model_state.keys():
-        new_state[key] = sum([client_state[key] for client_state in client_states]) / len(client_states)
-    return new_state
 
