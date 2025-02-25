@@ -5,7 +5,7 @@ from flcore.logger import server_logger, setup_server_logger
 import logging
 import threading
 #import check_database
-from server.check_database import check_database 
+from server.aggregation import check_database 
 
 def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
@@ -41,7 +41,9 @@ def create_app(test_config=None):
 
     # Add routes to app
     from . import server
+    from . import views
     app.register_blueprint(server.bp)
+    app.register_blueprint(views.bp)
     app.logger.debug(app.url_map)
     #print(app.url_map)
     # Setup

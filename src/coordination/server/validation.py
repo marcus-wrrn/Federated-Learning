@@ -14,7 +14,7 @@ import datetime
 import csv 
 from flcore.logger import server_logger
 
-class model_results:
+class ModelResults:
     def __init__(self,accuracy_in,tp_in,tn_in,fp_in,fn_in,recall,precision,f1):
         self.accuracy = accuracy_in
         self.tp = tp_in
@@ -24,6 +24,7 @@ class model_results:
         self.all_recall = recall
         self.all_precision = precision
         self.all_f1 = f1
+    
     def load_results(file_path):
         print("To be implemented")
     def get_all_accuracy():
@@ -35,7 +36,7 @@ class model_results:
     def get_all_f1():
         print("Hi")
 
-def validation(device,data_path='',model='',batchsize=5,threshold=0.5,save_val=0):
+def validation(device,data_path='',model='',batchsize=5,threshold=0.5,save_val=0) -> ModelResults:
     ## LOAD MODEL ## 
     server_logger.info("Running validation ...")
     #print("Running validation ...")
@@ -128,7 +129,7 @@ def validation(device,data_path='',model='',batchsize=5,threshold=0.5,save_val=0
     auc_weight = weighted_auc(class_auc,class_weights)
     print("AUC Precision {}, AUC Precision {}, AUC Precision {}\n".format(auc_micro,auc_macro,auc_weight))
     server_logger.info("AUC Precision {}, AUC Precision {}, AUC Precision {}\n".format(auc_micro,auc_macro,auc_weight))
-    results = model_results(model_accuracy,tp,fp,fn,tn,recall_macro,precision_macro,f1_macro)
+    results = ModelResults(model_accuracy,tp,fp,fn,tn,recall_macro,precision_macro,f1_macro)
     if(save_val):
         with open(savefile,"w",newline="") as file:
             writer = csv.writer(file)
