@@ -56,7 +56,7 @@
                 <p><strong>Super Round:</strong> <span id="currentSuperRound">-</span></p>
                 <p><strong>Round:</strong> <span id="currentRound">-</span> / <span id="maxRounds">-</span></p>
                 <p><strong>Learning Rate:</strong> <span id="currentLearningRate">-</span></p>
-                <p><strong>Clients Connected:</strong> <span id="connectedClients">-</span> / <span id="requiredClients">-</span></p>
+                <p><strong>Clients Trained:</strong> <span id="connectedClients">-</span> / <span id="requiredClients">-</span></p>
                 <div>
                     <p><strong>Progress:</strong></p>
                     <div class="progress-container">
@@ -64,6 +64,11 @@
                     </div>
                 </div>
             </div>
+        </div>
+
+        <div class="card full-width">
+            <h2>Model Accuracy Over Time</h2>
+            <canvas id="accuracyChart"></canvas>
         </div>
         
         <!-- Latest Model Performance -->
@@ -120,5 +125,6 @@
     </div>
     
     <script src="{{ url_for('static', filename='js/home.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </body>
 </html>

@@ -5,7 +5,23 @@ document.addEventListener('DOMContentLoaded', function() {
     const trainingForm = document.getElementById('trainingForm');
     const cancelTrainingBtn = document.getElementById('cancelTrainingBtn');
     const newTrainingForm = document.getElementById('newTrainingForm');
+    let accuracyChart = null;
     
+    function arraysEqual(a, b) {
+        if (a === b) return true;
+        if (a == null || b == null) return false;
+        if (a.length !== b.length) return false;
+        
+        // If you don't care about the order of the elements inside
+        // the array, you should sort both arrays here.
+        // Please note that calling sort on an array will modify that array.
+        // you might want to clone your array first.
+        
+        for (var i = 0; i < a.length; ++i) {
+            if (a[i].accuracy !== b[i].accuracy) return false;
+        }
+        return true;
+    }
     // Show training form
     startTrainingBtn.addEventListener('click', function() {
         trainingForm.classList.remove('hidden');
@@ -44,7 +60,6 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('Training started successfully!');
             trainingForm.classList.add('hidden');
             startTrainingBtn.disabled = false;
-            console.log(data); // Output returned data to the console
             fetchTrainingStatus(); // Refresh data
         })
         .catch(error => {
@@ -78,7 +93,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Function to fetch current training status
-    function fetchTrainingStatus() {
+    async function fetchTrainingStatus() {
         fetch('/view/current_round')
         .then(response => response.json())
         .then(data => {
@@ -86,9 +101,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('currentStatus').textContent = data.is_training ? 'Active' : 'Inactive';
             document.getElementById('currentStatus').className = data.is_training ? 'status-active' : 'status-inactive';
             
-            if (data.super_round_id) {
-                console.log("Hello World?");
-                console.log(data);
+            if (data.is_training) {
                 document.getElementById('currentSuperRound').textContent = data.super_round_id;
                 document.getElementById('currentRound').textContent = data.round_id;
                 document.getElementById('maxRounds').textContent = data.max_rounds;
@@ -97,8 +110,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('requiredClients').textContent = data.client_threshold;
                 
                 // Calculate and update progress
-                const progress = data.round_id ? 
-                    (data.round_id / data.max_rounds * 100) : 0;
+                let progress = data.round_id ? (data.round_id  / data.max_rounds * 100) : 0;
                 document.getElementById('roundProgress').style.width = `${progress}%`;
                 document.getElementById('roundProgress').textContent = `${Math.round(progress)}%`;
             }
@@ -119,7 +131,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Function to fetch connected clients
-    function fetchClients() {
+    async function fetchClients() {
         fetch('/api/clients')
         .then(response => response.json())
         .then(data => {
@@ -152,7 +164,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Function to fetch training history
-    function fetchTrainingHistory() {
+    async function fetchTrainingHistory() {
         fetch('/api/training/history')
         .then(response => response.json())
         .then(data => {
@@ -178,14 +190,68 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Error fetching training history:', error);
         });
     }
-    
+
+    async function fetchAndDisplayAccuracies() {
+        const superRound = parseInt(document.getElementById("currentSuperRound").textContent) || -1;
+        const trainRound = parseInt(document.getElementById("currentRound").textContent) || -1;
+        
+        if (superRound < 0 || trainRound < 0) return;
+        
+        fetch(`/view/models/${superRound}`)
+        .then(response => response.json())
+        .then(data => {
+            const labels = data.map(entry => `${entry.round_id}`);
+            const accuracies = data.map(entry => entry.accuracy);
+            console.log(`Accuracies: `, accuracies);
+            const ctx = document.getElementById('accuracyChart').getContext('2d');
+
+
+            if (!accuracyChart) {
+                accuracyChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Model Accuracy Over Rounds',
+                            data: accuracies,
+                            borderColor: 'blue',
+                            backgroundColor: 'rgba(0, 0, 255, 0.2)',
+                            fill: false,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                suggestedMax: 1
+                            }
+                        }
+                    }
+                });
+            } else {
+                accuracyChart.data.labels = labels;
+                accuracyChart.data.datasets[0].data = accuracies;
+                accuracyChart.update();
+            }
+            // Create a new chart
+            
+        })
+        .catch(error => {
+            console.error('Error fetching accuracy data: ', error);
+        });
+    }
+
     // Initial data fetch
     fetchTrainingStatus();
     fetchClients();
     fetchTrainingHistory();
+    fetchAndDisplayAccuracies();
     
     // Set up polling for continuous updates (every 5 seconds)
     setInterval(fetchTrainingStatus, 5000);
     setInterval(fetchClients, 5000);
-    setInterval(fetchTrainingHistory, 10000); // Less frequent for history
+    setInterval(fetchAndDisplayAccuracies, 5000); // Less frequent for history
+
 });

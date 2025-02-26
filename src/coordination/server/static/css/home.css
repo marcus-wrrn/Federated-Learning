@@ -125,3 +125,8 @@ th {
 .status-pending {
     background-color: #FFC107;
 }
+
+#accuracyChart {
+    width: 100%;
+    height: 400px !important;
+}
