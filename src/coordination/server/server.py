@@ -142,11 +142,11 @@ def init_training():
     except Exception as e:
         return f"Error processing request: {e}", 500
 
-@bp.route('/shutdown', methods=['GET'])
+@bp.route('/shutdown', methods=['POST'])
 def shutdown():
     with CoordinationDB(current_app.config["DATAPATH"]) as db:
         db.stop_training()
-    return f"Stopped Training", 200
+    return jsonify({"message": "Stopped Training", "success": True}), 200
     
 @bp.route('/connect_test',methods=['POST','GET'])
 def connected():

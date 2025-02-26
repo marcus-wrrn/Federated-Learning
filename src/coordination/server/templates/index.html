@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Federated Learning Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
+</head>
+<body>
+    <h1 class="intro-title">Federated Learning Dashboard</h1>
+    
+    <!-- Training controls -->
+    <div class="card full-width">
+        <h2>Training Controls</h2>
+        <div class="controls">
+            <button id="startTrainingBtn" class="btn-primary">Initialize New Training Round</button>
+            <button id="stopTrainingBtn" class="btn-danger">Stop Current Training</button>
+        </div>
+        
+        <!-- New Training Form (hidden by default) -->
+        <div id="trainingForm" class="hidden">
+            <h3>Configure New Training Round</h3>
+            <form id="newTrainingForm">
+                <div class="form-group">
+                    <label for="maxRounds">Maximum Rounds:</label>
+                    <input type="number" id="max_rounds" name="max_rounds" min="1" value="10" required>
+                </div>
+                <div class="form-group">
+                    <label for="clientThreshold">Client Threshold:</label>
+                    <input type="number" id="client_threshold" name="client_threshold" min="1" value="3" required>
+                </div>
+                <div class="form-group">
+                    <label for="learningRate">Learning Rate:</label>
+                    <input type="number" id="learning_rate" name="learning_rate" max="1" value="0.00001" required>
+                </div>
+                <div class="form-group">
+                    <label for="stepSize">Step Size:</label>
+                    <input type="number" id="step_size" name="step_size" min="1" value="10" required>
+                </div>
+                <div class="form-group">
+                    <label for="gamma">Gamma:</label>
+                    <input type="number" id="gamma" name="gamma" min="0" max="1" step="0.01" value="0.9" required>
+                </div>
+                <button type="submit" class="btn-primary">Start Training</button>
+                <button type="button" id="cancelTrainingBtn" class="btn-secondary">Cancel</button>
+            </form>
+        </div>
+    </div>
+    
+    <div class="dashboard-container">
+        <!-- Current Training Status -->
+        <div class="card">
+            <h2>Current Training Status</h2>
+            <div id="trainingStatus">
+                <p><strong>Status:</strong> <span id="currentStatus">Loading...</span></p>
+                <p><strong>Super Round:</strong> <span id="currentSuperRound">-</span></p>
+                <p><strong>Round:</strong> <span id="currentRound">-</span> / <span id="maxRounds">-</span></p>
+                <p><strong>Learning Rate:</strong> <span id="currentLearningRate">-</span></p>
+                <p><strong>Clients Trained:</strong> <span id="connectedClients">-</span> / <span id="requiredClients">-</span></p>
+                <div>
+                    <p><strong>Progress:</strong></p>
+                    <div class="progress-container">
+                        <div id="roundProgress" class="progress-bar" style="width: 0%">0%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card full-width">
+            <h2>Model Accuracy Over Time</h2>
+            <canvas id="accuracyChart"></canvas>
+        </div>
+        
+        <!-- Latest Model Performance -->
+        <div class="card">
+            <h2>Latest Model Performance</h2>
+            <div id="modelPerformance">
+                <p><strong>Model ID:</strong> <span id="currentModelId">-</span></p>
+                <p><strong>Accuracy:</strong> <span id="currentAccuracy">-</span></p>
+                <p><strong>Last Updated:</strong> <span id="lastUpdated">-</span></p>
+                <p><strong>Total Clients Trained:</strong> <span id="totalClientsTrained">-</span></p>
+            </div>
+        </div>
+        
+        <!-- Client List -->
+        <div class="card full-width">
+            <h2>Connected Clients</h2>
+            <table id="clientsTable">
+                <thead>
+                    <tr>
+                        <th>Client ID</th>
+                        <th>Status</th>
+                        <th>Model ID</th>
+                        <th>Has Trained</th>
+                    </tr>
+                </thead>
+                <tbody id="clientsTableBody">
+                    <tr>
+                        <td colspan="4">Loading client data...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Training History -->
+        <div class="card full-width">
+            <h2>Training History</h2>
+            <table id="trainingHistoryTable">
+                <thead>
+                    <tr>
+                        <th>Super Round</th>
+                        <th>Round</th>
+                        <th>Learning Rate</th>
+                        <th>Accuracy</th>
+                        <th>Clients</th>
+                    </tr>
+                </thead>
+                <tbody id="trainingHistoryTableBody">
+                    <tr>
+                        <td colspan="5">Loading history data...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/home.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</body>
+</html>

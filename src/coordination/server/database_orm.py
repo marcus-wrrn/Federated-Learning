@@ -277,17 +277,16 @@ class CoordinationDB:
 
         return path
     
-    # def get_current_model_id(self, super_id, round_id: ) -> str | None:
-    #     self.cursor.execute("""
-    #         SELECT model.model_id
-    #         FROM model
-    #         WHERE super_id = ? AND round_id = ?
-    #     """, ())
+    def is_aggregating(self):
+        self.cursor.execute("""
+            SELECT tr.is_aggregating
+            FROM train_round tr
+            JOIN training_config tc ON tc.round_id = tr.round_id AND tc.super_id = tr.super_id
+        """)
+        result = self.cursor.fetchone()
+        if result is None: return False
+        return result == 1
 
-    #     result = self.cursor.fetchone()
-    #     if result:
-    #         return result[0]
-    #     return None
     
     def update_round(self):
         curr_round = self.get_current_round()
@@ -366,16 +365,17 @@ class CoordinationDB:
             FROM model m
             WHERE m.super_id = ?
             ORDER BY m.round_id ASC
-        """, (super_round_id))
+        """, (super_round_id,))
         results = self.cursor.fetchall()
         
         # Convert to list of dictionaries for easier handling
         model_accuracies = []
         for row in results:
-            model_accuracies.append({
-                'model_id': row[0],
-                'round_id': row[1],
-                'accuracy': row[2]
-            })
+            if row[2] is not None:
+                model_accuracies.append({
+                    'model_id': row[0],
+                    'round_id': row[1],
+                    'accuracy': row[2]
+                })
         
         return model_accuracies
