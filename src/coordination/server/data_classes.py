@@ -17,8 +17,8 @@ class ClientRequest:
 
 @dataclass
 class TrainRound:
-    super_round_id: int
-    round_id: int
+    super_round: int
+    curr_round: int
     max_rounds: int
     client_threshold: int
     learning_rate: float

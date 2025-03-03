@@ -116,7 +116,7 @@ class CoordinationDB:
 
     def get_current_model_id(self):
         round = self.get_current_round()
-        return self.get_model_id(round.super_round_id, round.round_id)
+        return self.get_model_id(round.super_round, round.curr_round)
 
 
     def add_client(self, client_id: str, model_id: str | None, current_state: str,  commit=True) -> None:
@@ -219,7 +219,7 @@ class CoordinationDB:
     def get_model_path(self, instance_path: str, model_id: str) -> str | None:
         round_data = self.get_current_round()
         if not round_data: return None
-        path = os.path.join(instance_path, f"super_round_{round_data.super_round_id}/training_round_{round_data.round_id}")
+        path = os.path.join(instance_path, f"super_round_{round_data.super_round}/training_round_{round_data.curr_round}")
         if(not os.path.isdir(path)):
             os.makedirs(path)
         path = os.path.join(path, f"{model_id}.pth")
@@ -253,8 +253,8 @@ class CoordinationDB:
             return None
 
         return TrainRound(
-            super_round_id=result[0],
-            round_id=result[1],
+            super_round=result[0],
+            curr_round=result[1],
             max_rounds=result[2],  
             client_threshold=result[3],  
             learning_rate=result[4],
@@ -268,7 +268,7 @@ class CoordinationDB:
 
         if not round_data: return None
         
-        path = os.path.join(instance_path, f"super_round_{round_data.super_round_id}/training_round_{round_data.round_id}/client_models/") 
+        path = os.path.join(instance_path, f"super_round_{round_data.super_round}/training_round_{round_data.curr_round}/client_models/") 
 
         if(not os.path.isdir(path)):
             os.makedirs(path)
@@ -291,11 +291,11 @@ class CoordinationDB:
     def update_round(self):
         curr_round = self.get_current_round()
         # Determine new learning rate
-        next_round = curr_round.round_id + 1
+        next_round = curr_round.curr_round + 1
         learning_rate = curr_round.learning_rate * (curr_round.gamma ** (next_round // curr_round.step_size))
         
         # Create new training round with updated learning rate
-        self.cursor.execute("INSERT INTO train_round (super_id, round_id, learning_rate) VALUES (?, ?, ?)", (curr_round.super_round_id, next_round, learning_rate))
+        self.cursor.execute("INSERT INTO train_round (super_id, round_id, learning_rate) VALUES (?, ?, ?)", (curr_round.super_round, next_round, learning_rate))
         
         # Update training config and super_round to point to the next training round
         self.cursor.execute("UPDATE training_config SET round_id =?",(next_round,))
@@ -354,7 +354,7 @@ class CoordinationDB:
         
         if not round_data: return None
         
-        path = os.path.join(instance_path, f"super_round_{round_data.super_round_id}/training_round_{round_data.round_id}/client_models/") 
+        path = os.path.join(instance_path, f"super_round_{round_data.super_round}/training_round_{round_data.curr_round}/client_models/") 
         path = os.path.join(path, f"{client_id}.pth")
 
         return path

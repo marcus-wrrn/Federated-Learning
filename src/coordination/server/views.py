@@ -18,8 +18,8 @@ def current_round():
         if round is None:
             return jsonify({"is_training": False}), 200
 
-        clients = db.get_trained_clients(round.super_round_id, round.round_id)
-        model_accs = db.get_model_accuracies_by_super_round(round.super_round_id)
+        clients = db.get_trained_clients(round.super_round, round.curr_round)
+        model_accs = db.get_model_accuracies_by_super_round(round.super_round)
         is_aggregating = db.is_aggregating()
 
     data = asdict(round)
