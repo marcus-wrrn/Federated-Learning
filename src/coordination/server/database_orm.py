@@ -290,9 +290,13 @@ class CoordinationDB:
     
     def update_round(self):
         curr_round = self.get_current_round()
+        self.cursor.execute("SELECT learning_rate FROM train_round WHERE round_id = 1 AND super_id = ?", (curr_round.super_round,))
+        learning_rate = self.cursor.fetchone()[0]
+
         # Determine new learning rate
         next_round = curr_round.curr_round + 1
-        learning_rate = curr_round.learning_rate * (curr_round.gamma ** (next_round // curr_round.step_size))
+
+        learning_rate = learning_rate * (curr_round.gamma ** int(next_round // curr_round.step_size))
         
         # Create new training round with updated learning rate
         self.cursor.execute("INSERT INTO train_round (super_id, round_id, learning_rate) VALUES (?, ?, ?)", (curr_round.super_round, next_round, learning_rate))

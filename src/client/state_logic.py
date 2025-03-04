@@ -96,6 +96,7 @@ def coordinate_with_server(config: TrainingConfig):
             optimizer = torch.optim.AdamW(model.parameters(), response.hyperparameters.learning_rate)
             dataloader = DataLoader(HARSDataset(config.train_path), batch_size=2, shuffle=True)
             model.fit(dataloader, optimizer, train=True, client_key = config.client_id)
+            model = model.cpu()
             # save model
             torch.save(model.state_dict(), config.model_path)
             # Send model file back to server
