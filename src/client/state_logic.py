@@ -31,7 +31,7 @@ def communicate_with_server(cfg: TrainingConfig) -> CoordinationServerResponse:
 
 def get_new_model(server_address: str, model_id: str) -> requests.Response:
     route = server_address + f"/training/get_model/{model_id}"
-    client_logger.info("Retrieving new mode")
+    client_logger.info("Retrieving new model")
     #rint("Retrieving new model")
     response = requests.get(route)
     #print("Got model")

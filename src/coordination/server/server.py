@@ -72,7 +72,7 @@ def ping_server():
                 client = db.get_client(client_resp.client_id)
                 response = CoordinationResponse(client_id=client.client_id, model_id=client.model_id, state=client.state,hyperparameters=None)
                 return jsonify(asdict(response)), 200
-            current_model_id = db.get_model_id(current_round.super_round_id, current_round.round_id)
+            current_model_id = db.get_model_id(current_round.super_round, current_round.curr_round)
             if client_resp.model_id != current_model_id:
                 db.cursor.execute("UPDATE clients SET model_id = ?, has_trained = ? WHERE client_id = ?", (current_model_id, 0, client_resp.client_id))
                 db.conn.commit()
@@ -132,10 +132,10 @@ def init_training():
                 raise Exception("Round is none")
             
             model = HARSModel("cpu")
-            model_id = db.create_model(super_id=round.super_round_id, round_id=round.round_id)
+            model_id = db.create_model(super_id=round.super_round, round_id=round.curr_round)
 
             # create round directory and current model
-        path = os.path.join(current_app.instance_path, f"super_round_{round.super_round_id}/training_round_{round.round_id}/{model_id}.pth")
+        path = os.path.join(current_app.instance_path, f"super_round_{round.super_round}/training_round_{round.curr_round}/{model_id}.pth")
         torch.save(model.state_dict(), path)
 
         return jsonify(asdict(round)), 200

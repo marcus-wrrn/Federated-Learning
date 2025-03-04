@@ -16,8 +16,8 @@ def check_database():
             cur_round = db.get_current_round()
             if (cur_round is None): continue
 
-            current_app.logger.info("Training round : {}".format(cur_round.round_id))
-            client_count = db.get_trained_clients(cur_round.super_round_id, cur_round.round_id)
+            current_app.logger.info("Training round : {}".format(cur_round.curr_round))
+            client_count = db.get_trained_clients(cur_round.super_round, cur_round.curr_round)
             print(f"Client Count: {client_count}")
 
 
@@ -29,7 +29,7 @@ def check_database():
             #print("Aggregating")
             current_app.logger.info("Aggregating")
             db.update_aggregate(1)
-            cur_model_id = db.get_model_id(cur_round.super_round_id, cur_round.round_id)
+            cur_model_id = db.get_model_id(cur_round.super_round, cur_round.curr_round)
 
             round_path = db.get_model_path(current_app.instance_path, cur_model_id)
 
@@ -77,17 +77,17 @@ def check_database():
             max_round = cur_round.max_rounds
             db.update_aggregate(0)
             current_app.logger.info("Checking if done training (max round hit)")
-            current_app.logger.debug("current round: {}, current + 1 : {}. max : {}".format(cur_round.round_id,cur_round.round_id+1, cur_round.max_rounds))
+            current_app.logger.debug("current round: {}, current + 1 : {}. max : {}".format(cur_round.curr_round,cur_round.curr_round+1, cur_round.max_rounds))
             
-            if(cur_round.round_id + 1 <= cur_round.max_rounds):
+            if(cur_round.curr_round + 1 <= cur_round.max_rounds):
                 # implement new round logic
                 db.update_round()
 
                 new_round =  db.get_current_round()
-                new_model_id = db.create_model(new_round.super_round_id, new_round.round_id)
+                new_model_id = db.create_model(new_round.super_round, new_round.curr_round)
                 path = db.get_model_path(current_app.instance_path,new_model_id)
                 torch.save(aggregate_states, path)
-                current_app.logger.info("Starting training round {}".format(new_round.round_id))
+                current_app.logger.info("Starting training round {}".format(new_round.curr_round))
             else:
                 current_app.logger.info("Max rounds has been hit. Training done")                    
                 db.cursor.execute("DELETE FROM training_config WHERE id = 1")

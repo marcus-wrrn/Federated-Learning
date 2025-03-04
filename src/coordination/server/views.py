@@ -18,8 +18,8 @@ def current_round():
         if round is None:
             return jsonify({"is_training": False}), 200
 
-        clients = db.get_trained_clients(round.super_round_id, round.round_id)
-        model_accs = db.get_model_accuracies_by_super_round(round.super_round_id)
+        clients = db.get_trained_clients(round.super_round, round.curr_round)
+        model_accs = db.get_model_accuracies_by_super_round(round.super_round)
         is_aggregating = db.is_aggregating()
 
     data = asdict(round)
@@ -31,6 +31,44 @@ def current_round():
 
     return jsonify(data), 200
 
+@bp.route('/history/<super_round>', methods=['GET'])
+def history(super_round: int):
+    with CoordinationDB(current_app.config["DATAPATH"]) as db:
+        query = """
+        SELECT 
+            tr.super_id,
+            tr.round_id,
+            tr.learning_rate,
+            m.accuracy,
+            COUNT(cm.id) AS client_models_count
+        FROM 
+            train_round tr
+        JOIN 
+            model m ON tr.round_id = m.round_id AND tr.super_id = m.super_id
+        LEFT JOIN 
+            client_models cm ON m.model_id = cm.mId
+        WHERE 
+            tr.super_id = ?
+        GROUP BY 
+            tr.super_id, tr.round_id, m.model_id, tr.learning_rate  -- Added learning_rate
+        ORDER BY 
+            tr.super_id, tr.round_id
+    """
+
+        db.cursor.execute(query, (super_round,))
+        results = db.cursor.fetchall()
+
+    data = []
+    for row in results:
+        data.append({
+            "super_round": row[0],
+            "train_round": row[1],
+            "learning_rate": row[2],
+            "accuracy": row[3],
+            "num_clients": row[4]
+        })
+
+    return jsonify(data), 200
 
 @bp.route('/', methods=['GET'])
 def home():
