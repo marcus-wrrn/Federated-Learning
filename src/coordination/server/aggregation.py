@@ -51,7 +51,7 @@ def check_database():
 
                 db.flag_client_training(client_ids[c_idx][0], cur_model_id, 0)
 
-            aggregate_states = agg_model(client_list_states,cur_model.state_dict())
+            aggregate_states = agg_model(client_list_states, cur_model.state_dict())
 
             # save the aggregate model         
             cur_model.load_state_dict(aggregate_states)
