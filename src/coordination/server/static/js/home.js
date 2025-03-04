@@ -7,21 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const newTrainingForm = document.getElementById('newTrainingForm');
     let accuracyChart = null;
     
-    function arraysEqual(a, b) {
-        if (a === b) return true;
-        if (a == null || b == null) return false;
-        if (a.length !== b.length) return false;
-        
-        // If you don't care about the order of the elements inside
-        // the array, you should sort both arrays here.
-        // Please note that calling sort on an array will modify that array.
-        // you might want to clone your array first.
-        
-        for (var i = 0; i < a.length; ++i) {
-            if (a[i].accuracy !== b[i].accuracy) return false;
-        }
-        return true;
-    }
+
     // Show training form
     startTrainingBtn.addEventListener('click', function() {
         trainingForm.classList.remove('hidden');
@@ -102,17 +88,12 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('currentStatus').className = data.is_training ? 'status-active' : 'status-inactive';
             
             if (data.is_training) {
-                document.getElementById('currentSuperRound').textContent = data.super_round_id;
-                document.getElementById('currentRound').textContent = data.round_id;
+                document.getElementById('currentSuperRound').textContent = data.super_round;
+                document.getElementById('currentRound').textContent = data.curr_round;
                 document.getElementById('maxRounds').textContent = data.max_rounds;
                 document.getElementById('currentLearningRate').textContent = data.learning_rate;
                 document.getElementById('connectedClients').textContent = data.client_count || '0';
                 document.getElementById('requiredClients').textContent = data.client_threshold;
-                
-                // Calculate and update progress
-                let progress = data.round_id ? (data.round_id  / data.max_rounds * 100) : 0;
-                document.getElementById('roundProgress').style.width = `${progress}%`;
-                document.getElementById('roundProgress').textContent = `${Math.round(progress)}%`;
             }
             
             // Update model performance section
@@ -121,8 +102,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('currentAccuracy').textContent = 
                     data.current_model.accuracy !== null ? 
                     `${(data.current_model.accuracy * 100).toFixed(2)}%` : 'Not yet evaluated';
-                document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
-                document.getElementById('totalClientsTrained').textContent = data.trained_clients || '0';
+                // document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
+                // document.getElementById('totalClientsTrained').textContent = data.trained_clients || '0';
             }
         })
         .catch(error => {
@@ -165,7 +146,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Function to fetch training history
     async function fetchTrainingHistory() {
-        fetch('/api/training/history')
+        const superRound = parseInt(document.getElementById("currentSuperRound").textContent) || -1;
+        fetch(`/view/history/${superRound}`)
         .then(response => response.json())
         .then(data => {
             const tableBody = document.getElementById('trainingHistoryTableBody');
@@ -174,11 +156,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 data.forEach(round => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
-                        <td>${round.super_id}</td>
-                        <td>${round.round_id}</td>
+                        <td>${round.train_round}</td>
                         <td>${round.learning_rate}</td>
                         <td>${round.accuracy !== null ? (round.accuracy * 100).toFixed(2) + '%' : 'N/A'}</td>
-                        <td>${round.client_count || '0'}</td>
+                        <td>${round.num_clients || '0'}</td>
                     `;
                     tableBody.appendChild(row);
                 });
@@ -202,8 +183,20 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             const labels = data.map(entry => `${entry.round_id}`);
             const accuracies = data.map(entry => entry.accuracy);
+            const modelIDs = data.map(entry => `${entry.model_id}`);
             console.log(`Accuracies: `, accuracies);
             const ctx = document.getElementById('accuracyChart').getContext('2d');
+
+            // Calculate and update progress
+            const maxRounds = parseInt(document.getElementById('maxRounds').textContent);
+            let progress = maxRounds ? (modelIDs.length  / maxRounds * 100) : 0;
+            document.getElementById('roundProgress').style.width = `${progress}%`;
+            document.getElementById('roundProgress').textContent = `${Math.round(progress)}%`;
+
+            document.getElementById('currentModelId').textContent = modelIDs[modelIDs.length - 1];
+            document.getElementById('currentAccuracy').textContent = 
+                accuracies[accuracies.length - 1] !== null ? 
+                `${(accuracies[accuracies.length - 1] * 100).toFixed(2)}%` : 'Not yet evaluated';
 
 
             if (!accuracyChart) {
@@ -245,13 +238,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initial data fetch
     fetchTrainingStatus();
-    fetchClients();
+    // fetchClients();
     fetchTrainingHistory();
     fetchAndDisplayAccuracies();
     
     // Set up polling for continuous updates (every 5 seconds)
     setInterval(fetchTrainingStatus, 5000);
-    setInterval(fetchClients, 5000);
+    setInterval(fetchTrainingHistory, 5000);
     setInterval(fetchAndDisplayAccuracies, 5000); // Less frequent for history
 
 });

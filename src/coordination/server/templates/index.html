@@ -57,12 +57,6 @@
                 <p><strong>Round:</strong> <span id="currentRound">-</span> / <span id="maxRounds">-</span></p>
                 <p><strong>Learning Rate:</strong> <span id="currentLearningRate">-</span></p>
                 <p><strong>Clients Trained:</strong> <span id="connectedClients">-</span> / <span id="requiredClients">-</span></p>
-                <div>
-                    <p><strong>Progress:</strong></p>
-                    <div class="progress-container">
-                        <div id="roundProgress" class="progress-bar" style="width: 0%">0%</div>
-                    </div>
-                </div>
             </div>
         </div>
 
@@ -72,8 +66,14 @@
             <div id="modelPerformance">
                 <p><strong>Model ID:</strong> <span id="currentModelId">-</span></p>
                 <p><strong>Accuracy:</strong> <span id="currentAccuracy">-</span></p>
-                <p><strong>Last Updated:</strong> <span id="lastUpdated">-</span></p>
-                <p><strong>Total Clients Trained:</strong> <span id="totalClientsTrained">-</span></p>
+                <!-- <p><strong>Last Updated:</strong> <span id="lastUpdated">-</span></p>
+                <p><strong>Total Clients Trained:</strong> <span id="totalClientsTrained">-</span></p> -->
+                <div>
+                    <p><strong>Progress:</strong></p>
+                    <div class="progress-container">
+                        <div id="roundProgress" class="progress-bar" style="width: 0%">0%</div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -103,12 +103,11 @@
         </div> -->
         
         <!-- Training History -->
-        <!-- <div class="card full-width">
+        <div class="card full-width">
             <h2>Training History</h2>
             <table id="trainingHistoryTable">
                 <thead>
                     <tr>
-                        <th>Super Round</th>
                         <th>Round</th>
                         <th>Learning Rate</th>
                         <th>Accuracy</th>
@@ -122,7 +121,7 @@
                 </tbody>
             </table>
         </div>
-    </div> -->
+    </div>
     
     <script src="{{ url_for('static', filename='js/home.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
