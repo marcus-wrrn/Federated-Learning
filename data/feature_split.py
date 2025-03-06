@@ -5,11 +5,11 @@ import os
 
 def split_data(train_path: str, out_dir: str):
     df = pd.read_csv(train_path)
-    grouped = df.groupby('subject')
+    grouped = df.groupby('Activity')
 
 
-    for i, (_, group) in enumerate(grouped):
-        path = os.path.join(out_dir, f"dataset_{i}.csv")
+    for activity, group in grouped:
+        path = os.path.join(out_dir, f"dataset_{activity}.csv")
         group.to_csv(path, index=False)
         print(f"Saved file to {path}")
 
