@@ -3,6 +3,10 @@ import numpy as np
 import argparse
 import os
 
+# File splits the training data into multiple datasets with an even distribution of labeled data
+# Used for testing non-IID trials
+
+
 def split_data(train_path: str, out_dir: str, num_splits: int = 10):
     df = pd.read_csv(train_path)
     df = df.sample(frac=1, random_state=42).reset_index(drop=True)  # Shuffle data
