@@ -4,6 +4,7 @@ from flcore.logger import client_logger, setup_client_logger
 import argparse
 from config import TrainingConfig
 from state_logic import upload_model
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--num", type=int, default=10, help="Number of splits")
@@ -20,7 +21,10 @@ if __name__ == "__main__":
         host_ip = args.server_url,
         cuda = False,
     )  
-
+    response = communicate_with_server(cfg)
+    cfg.model_id = response.model_id
+    current_state = ClientState(response.state)
+    cfg.current_state = current_state
     for i in range(1,3):
         client_dir = TEST_MODEL_DIR + "client{i}/"
         id_path = client_dir + "client_hash.txt"
