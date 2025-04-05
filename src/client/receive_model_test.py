@@ -9,8 +9,8 @@ if __name__ == "__main__":
     parser.add_argument("--server_url", type=str, default="http://127.0.0.1:5000")
 
     args = parser.parse_args()
-    # Must be run in src/client
-    TEST_MODEL_DIR = r"../../data/test/agg_test/model.pth"
+    # Must be run in src/client    
+    TEST_MODEL_DIR = r"../../data/test/agg_test/6793b484275ade3f8bb8f07e434d8842.pth"
 
     cfg = TrainingConfig(
         train_path = "", 

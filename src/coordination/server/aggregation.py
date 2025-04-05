@@ -6,6 +6,7 @@ import os
 import torch
 from flcore.models.basic import HARSModel
 from server.validation import validation
+import hashlib
 
 def check_database():
     current_app.logger.info("Starting database check")
@@ -57,6 +58,19 @@ def check_database():
             cur_model.load_state_dict(aggregate_states)
             torch.save(cur_model.state_dict(), round_path)
 
+            if(current_app.config["TEST_MODE"]==1):        
+                agg_model_byte_size = cur_model.read()
+                path = os.path.join(current_app.instance_path,"data/test/agg_test/6793b484275ade3f8bb8f07e434d8842.pth")              
+                with open(path , "rb") as f:
+                    val_byte_size = f.read()
+
+                agg_hash = hashlib.sha256(agg_model_byte_size).hexdigest()
+                val_hash = hashlib.sha256(val_byte_size).hexdigest()
+                if(agg_hash == val_hash):
+                    print("Upload successful")
+                else:
+                    print("Upload failed. Model not identical")
+
             ## Do validation
             # Get test data set path
             datapath = current_app.instance_path
@@ -105,6 +119,8 @@ def agg_model(client_states , round_state:dict) -> dict:
         #print(client_state)
     if len(client_states) == 0:
         return round_state
+    print(len(client_states))    
     for key in round_state.keys():
         new_state[key] = sum([client_state[key] for client_state in client_states]) / len(client_states)
+    print(len(new_state))
     return new_state        

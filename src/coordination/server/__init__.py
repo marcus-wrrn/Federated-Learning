@@ -6,6 +6,7 @@ import logging
 import threading
 #import check_database
 from server.aggregation import check_database 
+import argparse
 
 def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
@@ -61,9 +62,13 @@ def create_app(test_config=None):
 
 # Custom Flask CLI command to set the environment in testing mode
 @app.cli.command("test")
-def test():
+@click.option(, is_flag=True, help="What test are you running")
+def test(mode):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--mode', type=int, default=1)
+    args=parser.parse_args()
     """Run the server with optional dev mode."""
     app = create_app()
-    app.config["TEST_MODE"] = 1
+    app.config["TEST_MODE"] = args.mode
     # Start the Flask app
     app.run(host="0.0.0.0", port=5000)
