@@ -21,7 +21,21 @@ def get_model(model_id):
             return "Model does not exist", 404
         if not os.path.exists(path):
             return "Model has been deleted", 500
+    if(current_app.config["TEST_MODE"]==2):        
+        #path = current_app.instance_path +  
+        ## Need to find the path to the data
+        #<directory of the file where __name__ is defined>/instance is where current_app.instance_app. So it is in coordination/server
+        current_path = current_app.instance_path
+        print(current_path)
 
+        current_path = os.path.dirname(current_path)
+        print(current_path)
+        current_path = os.path.dirname(current_path)
+        print(current_path)
+        current_path = os.path.dirname(current_path)
+        print(current_path)        
+        path = os.path.join(current_path,"data/test/agg_test/6793b484275ade3f8bb8f07e434d8842.pth")              
+        
     return send_file(path)
 
 @bp.route('/upload-model', methods=['POST'])
@@ -144,6 +158,37 @@ def init_training():
                 gamma=data["gamma"]
             )
             current_app.logger.info("Round initializer")
+            current_app.logger.info("Round initializer")
+            epoch = f"Max rounds : {data["max_rounds"]}"
+            threshold = f"Client threshold : {data["client_threshold"]}"
+            lr = f"Learning rate : {data["learning_rate"]}"
+            step = f"Step size : {data["step_size"]}"
+            gam = f"Gamma : {data["gamma"]}"
+
+            current_app.logger.info(epoch)
+            current_app.logger.info(threshold)
+            current_app.logger.info(lr)
+            current_app.logger.info(step)
+            current_app.logger.info(gam)
+            if(current_app.config["TEST_MODE"]==5):
+                init_error = False
+                if(data["max_rounds"]!=1):
+                    print("Error max rounds different then expected")
+                    init_error = True
+                if(data["client_threshold"]!=5):
+                    print("Error client threshold different then expected")
+                    init_error = True
+                if(data["learning_rate"]!=0.001):
+                    print("Error learning rate different then expected")
+                    init_error = True
+                if(data["step_size"]!=3):
+                    print("Error step size different then expected")
+                    init_error = True
+                if(data["gamma"]!=0.2):
+                    print("Error gamma different then expected")
+                    init_error = True
+                if(init_error):
+                    return
             #print("Round initialized")
 
             round = db.get_current_round()
