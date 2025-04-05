@@ -1,4 +1,4 @@
-from coordination.server import create_app
+from server import create_app
 import argparse
 
 parser = argparse.ArgumentParser(description="A script to start a local coordination server for testing")

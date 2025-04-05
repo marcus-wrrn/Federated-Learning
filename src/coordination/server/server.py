@@ -148,7 +148,7 @@ def shutdown():
         db.stop_training()
     return jsonify({"message": "Stopped Training", "success": True}), 200
     
-@bp.route('/connect_test',methods=['POST','GET'])
+@bp.route('/connection_test',methods=['POST','GET'])
 def connected():
     print("The following device has connected to the network : "+request.remote_addr)
     print("End message")
