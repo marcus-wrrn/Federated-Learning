@@ -7,6 +7,7 @@ import sqlite3
 from server.database_orm import CoordinationDB
 from server.data_classes import ClientRequest, CoordinationResponse, ClientState, Hyperparameters
 from dataclasses import asdict
+import hashlib
 
 bp = Blueprint("training", __name__, url_prefix="/training")
 
@@ -44,6 +45,25 @@ def upload_model():
                 return f"Pathing error", 500
     
         model_data.save(filepath)
+
+        if(current_app.config["TEST_MODE"]):            
+            uploaded_byte_size = model_data.read()
+            validation_path = r"../../data/test/client_test/"
+            if(client_id == "6241e9b7ba3b4fae90405cd726f30b28"):
+                validation_model_path = validation_path + r"client1/model.pth"
+            elif(client_id == "8cb593a3d8d1af7e87126012f6c8ba86"):
+                validation_model_path = validation_path + r"client2/model.pth"
+            elif(client_id == "e6d43a022b8cdc5bca1ac9dd8371afb5"):
+                validation_model_path = validation_path + r"client3/model.pth"
+            # assuming running from src/coordinate/
+            with open(validation_model_path, "rb") as f:
+                val_byte_size = f.read()
+            upload_hash = hashlib.sha256(uploaded_byte_size).hexdigest()
+            val_hash = hashlib.sha256(val_byte_size).hexdigest()
+            if(upload_hash == val_hash):
+                print("Upload successful")
+            else:
+                print("Upload failed. Model not identical")
         return "Model saved", 200
     except Exception as e:
         return f"Error uploading model: {e}", 500

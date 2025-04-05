@@ -19,7 +19,8 @@ def create_app(test_config=None):
         CURRENT_ROUND = 0,
         ROUND_COMPLETED = threading.Event(),
         NUM_CLIENTS = 2, # TODO: Should eventually be removed to allow for a dynamic number of clients
-        GLOBAL_BIN_PATH = os.path.join(app.instance_path, "global_model.bin")
+        GLOBAL_BIN_PATH = os.path.join(app.instance_path, "global_model.bin"),
+        TEST_MODE = 0
     )
     server_logger = setup_server_logger(app.instance_path)
     server_logger.info("Starting up server")
@@ -57,3 +58,12 @@ def create_app(test_config=None):
     thread.start()
     
     return app
+
+# Custom Flask CLI command to set the environment in testing mode
+@app.cli.command("test")
+def test():
+    """Run the server with optional dev mode."""
+    app = create_app()
+    app.config["TEST_MODE"] = 1
+    # Start the Flask app
+    app.run(host="0.0.0.0", port=5000)
