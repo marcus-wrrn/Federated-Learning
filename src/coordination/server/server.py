@@ -25,6 +25,7 @@ def get_model(model_id):
         #path = current_app.instance_path +  
         ## Need to find the path to the data
         #<directory of the file where __name__ is defined>/instance is where current_app.instance_app. So it is in coordination/server
+        # Receive test case
         current_path = current_app.instance_path
         print(current_path)
 
