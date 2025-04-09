@@ -203,7 +203,7 @@ def init_training():
                     init_error = True
                 if(data["step_size"]!=3):
                     print("Error step size different then expected")
-                   init_error = True
+                    init_error = True
                 if(data["gamma"]!=0.2):
                     print("Error gamma different then expected")
                     init_error = True
