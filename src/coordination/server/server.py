@@ -27,14 +27,9 @@ def get_model(model_id):
         #<directory of the file where __name__ is defined>/instance is where current_app.instance_app. So it is in coordination/server
         # Receive test case
         current_path = current_app.instance_path
-        print(current_path)
-
         current_path = os.path.dirname(current_path)
-        print(current_path)
         current_path = os.path.dirname(current_path)
-        print(current_path)
         current_path = os.path.dirname(current_path)
-        print(current_path)        
         path = os.path.join(current_path,"data/test/agg_test/6793b484275ade3f8bb8f07e434d8842.pth")              
         
     return send_file(path)
@@ -64,6 +59,8 @@ def upload_model():
         if(current_app.config["TEST_MODE"]):            
             uploaded_byte_size = model_data.read()
             validation_path = r"../../data/test/client_test/"
+            print(os.getcwd())
+            print(validatoin_path)
             if(client_id == "6241e9b7ba3b4fae90405cd726f30b28"):
                 validation_model_path = validation_path + r"client1/model.pth"
             elif(client_id == "8cb593a3d8d1af7e87126012f6c8ba86"):
