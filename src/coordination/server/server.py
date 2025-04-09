@@ -76,6 +76,7 @@ def upload_model():
                 validation_model_path = os.path.join(validation_dir,r"client3/model.pth") 
             # assuming running from src/coordinate/
             print("HEre2")
+            print(validation_model_path)
             with open(validation_model_path, "rb") as f:
                 val_byte_size = f.read()
             upload_hash = hashlib.sha256(uploaded_byte_size).hexdigest()
