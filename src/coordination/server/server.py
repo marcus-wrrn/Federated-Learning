@@ -171,7 +171,7 @@ def init_training():
             rounds = data["max_rounds"]
             epoch = f"Max rounds : {rounds}"
             print(epoch)
-            c_thresh = client_threshold
+            c_thresh = data["client_threshold"]
             threshold = f"Client threshold : {c_thresh}"
             print(threshold)
             learning = data["learning_rate"]
