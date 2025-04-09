@@ -22,7 +22,7 @@ def check_database():
             print(f"Client Count: {client_count}")
 
 
-            if (client_count < cur_round.client_threshold) or (current_app.config["TEST_MODE"]==8):
+            if (client_count < cur_round.client_threshold) and (current_app.config["TEST_MODE"]!=8):
                 time.sleep(30)
                 continue
 
