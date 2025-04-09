@@ -197,7 +197,7 @@ def init_training():
                     init_error = True
                 if(data["client_threshold"]!=5):
                     print("Error client threshold different then expected")
-                   init_error = True
+                    init_error = True
                 if(data["learning_rate"]!=0.00001):
                     print("Error learning rate different then expected")
                     init_error = True
