@@ -55,8 +55,9 @@ def upload_model():
                 return f"Pathing error", 500
     
         model_data.save(filepath)
-
+        
         if(current_app.config["TEST_MODE"]):            
+            last_test_mode = False
             VAL_DIR = r"data/test/client_test/"
             current_path = os.path.dirname(os.getcwd())
             current_path = os.path.dirname(current_path)
@@ -67,6 +68,8 @@ def upload_model():
                 validation_model_path = os.path.join(validation_dir,r"client2/model.pth") 
             elif(client_id == "e6d43a022b8cdc5bca1ac9dd8371afb5"):
                 validation_model_path = os.path.join(validation_dir,r"client3/model.pth") 
+                last_test_mode = True 
+                
             # assuming running from src/coordinate/
             with open(validation_model_path, "rb") as f:
                 val_byte_size = f.read()
@@ -78,6 +81,9 @@ def upload_model():
                 print("Upload successful")
             else:
                 print("Upload failed. Model not identical")
+            if(last_test_mode):
+                current_app.config["TEST_MODE"]=8
+            
         return "Model saved", 200
     except Exception as e:
         return f"Error uploading model: {e}", 500

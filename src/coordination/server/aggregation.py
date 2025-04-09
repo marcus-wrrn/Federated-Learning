@@ -22,7 +22,7 @@ def check_database():
             print(f"Client Count: {client_count}")
 
 
-            if client_count < cur_round.client_threshold:
+            if (client_count < cur_round.client_threshold) or (current_app.config["TEST_MODE"]==8):
                 time.sleep(30)
                 continue
 
@@ -58,7 +58,7 @@ def check_database():
             cur_model.load_state_dict(aggregate_states)
             torch.save(cur_model.state_dict(), round_path)
 
-            if(current_app.config["TEST_MODE"]==1):   
+            if(current_app.config["TEST_MODE"]==8):   
                 print("Aggregating test")     
                 agg_model_byte_size = cur_model.read()
                 current_path = os.path.dirname(current_path)
