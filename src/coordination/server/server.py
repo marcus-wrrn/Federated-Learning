@@ -57,17 +57,10 @@ def upload_model():
         model_data.save(filepath)
 
         if(current_app.config["TEST_MODE"]):            
-            #uploaded_byte_size = model_data.read()
-            validation_path = r"../../data/test/client_test/"
             VAL_DIR = r"data/test/client_test/"
-            print(f"Cur dir {os.getcwd()}")
             current_path = os.path.dirname(os.getcwd())
             current_path = os.path.dirname(current_path)
-            print(current_path)
             validation_dir = os.path.join(current_path,VAL_DIR)
-            print(validation_dir)
-
-            print("HEre1")
             if(client_id == "6241e9b7ba3b4fae90405cd726f30b28"):
                 validation_model_path = os.path.join(validation_dir,r"client1/model.pth") 
             elif(client_id == "8cb593a3d8d1af7e87126012f6c8ba86"):
@@ -75,8 +68,6 @@ def upload_model():
             elif(client_id == "e6d43a022b8cdc5bca1ac9dd8371afb5"):
                 validation_model_path = os.path.join(validation_dir,r"client3/model.pth") 
             # assuming running from src/coordinate/
-            print("HEre2")
-            print(validation_model_path)
             with open(validation_model_path, "rb") as f:
                 val_byte_size = f.read()
             with open(filepath, "rb") as f:

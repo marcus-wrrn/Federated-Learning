@@ -58,18 +58,22 @@ def check_database():
             cur_model.load_state_dict(aggregate_states)
             torch.save(cur_model.state_dict(), round_path)
 
-            if(current_app.config["TEST_MODE"]==1):        
+            if(current_app.config["TEST_MODE"]==1):   
+                print("Aggregating test")     
                 agg_model_byte_size = cur_model.read()
-                path = os.path.join(current_app.instance_path,"data/test/agg_test/6793b484275ade3f8bb8f07e434d8842.pth")              
+                current_path = os.path.dirname(current_path)
+                current_path = os.path.dirname(current_path)
+                current_path = os.path.dirname(current_path)
+                path = os.path.join(current_path,"data/test/agg_test/6793b484275ade3f8bb8f07e434d8842.pth")              
                 with open(path , "rb") as f:
                     val_byte_size = f.read()
 
                 agg_hash = hashlib.sha256(agg_model_byte_size).hexdigest()
                 val_hash = hashlib.sha256(val_byte_size).hexdigest()
                 if(agg_hash == val_hash):
-                    print("Upload successful")
+                    print("Aggregate successful")
                 else:
-                    print("Upload failed. Model not identical")
+                    print("Aggregate failed. Model not identical")
 
             ## Do validation
             # Get test data set path
