@@ -64,7 +64,9 @@ def upload_model():
             current_path = os.path.dirname(os.getcwd())
             current_path = os.path.dirname(current_path)
             print(current_path)
-            validatoin_dir = os.path.join(current_path,VAL_DIR)
+            validation_dir = os.path.join(current_path,VAL_DIR)
+            print(validation_dir)
+
             print("HEre1")
             if(client_id == "6241e9b7ba3b4fae90405cd726f30b28"):
                 validation_model_path = os.path.join(validation_dir,r"client1/model.pth") 
