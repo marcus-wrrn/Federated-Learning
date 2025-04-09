@@ -170,12 +170,16 @@ def init_training():
             current_app.logger.info("Round initializer")
             rounds = data["max_rounds"]
             epoch = f"Max rounds : {rounds}"
+            print(epoch)
             c_thresh = client_threshold
             threshold = f"Client threshold : {c_thresh}"
+            print(threshold)
             learning = data["learning_rate"]
             lr = f"Learning rate : {learning}"
+            print(lr)
             ss = data["step_size"]
             step = f"Step size : {ss}"
+            print(step)
             g = data["gamma"]
             gam = f"Gamma : {g}"
             print("Here4")
