@@ -183,6 +183,7 @@ def init_training():
             current_app.logger.info(gam)
             print(current_app.config["TEST_MODE"])
             if(current_app.config["TEST_MODE"]==5):
+                print("Here")
                 init_error = False
                 if(data["max_rounds"]!=1):
                     print("Error max rounds different then expected")
@@ -200,6 +201,7 @@ def init_training():
                     print("Error gamma different then expected")
                     init_error = True
                 if(init_error):
+                    print("Test case failed")
                     return
                 else:
                     print("Test has been passed")
