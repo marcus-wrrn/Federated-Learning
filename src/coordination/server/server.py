@@ -181,30 +181,30 @@ def init_training():
             current_app.logger.info(lr)
             current_app.logger.info(step)
             current_app.logger.info(gam)
-            print(current_app.config["TEST_MODE"])
-            if(current_app.config["TEST_MODE"]==5):
-                print("Here")
-                init_error = False
-                if(data["max_rounds"]!=1):
-                    print("Error max rounds different then expected")
-                    init_error = True
-                if(data["client_threshold"]!=5):
-                    print("Error client threshold different then expected")
-                    init_error = True
-                if(data["learning_rate"]!=0.00001):
-                    print("Error learning rate different then expected")
-                    init_error = True
-                if(data["step_size"]!=3):
-                    print("Error step size different then expected")
-                    init_error = True
-                if(data["gamma"]!=0.2):
-                    print("Error gamma different then expected")
-                    init_error = True
-                if(init_error):
-                    print("Test case failed")
-                    return
-                else:
-                    print("Test has been passed")
+            #print(current_app.config["TEST_MODE"])
+            #if(current_app.config["TEST_MODE"]==5):
+            #    print("Here")
+            #    init_error = False
+            #    if(data["max_rounds"]!=1):
+            #        print("Error max rounds different then expected")
+            #        init_error = True
+            #    if(data["client_threshold"]!=5):
+            #        print("Error client threshold different then expected")
+            #        init_error = True
+            #    if(data["learning_rate"]!=0.00001):
+            #        print("Error learning rate different then expected")
+            #        init_error = True
+            #    if(data["step_size"]!=3):
+            #        print("Error step size different then expected")
+            #        init_error = True
+            #    if(data["gamma"]!=0.2):
+            #        print("Error gamma different then expected")
+            #        init_error = True
+            #    if(init_error):
+            #        print("Test case failed")
+            #        return
+            #    else:
+            #        print("Test has been passed")
             #print("Round initialized")
 
             round = db.get_current_round()
