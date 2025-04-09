@@ -91,6 +91,9 @@ def display():
 
 @bp.route('/ping', methods=['POST'])
 def ping_server():
+    if(current_app.config["TEST_MODE"]==1):        
+        print("Test Server")
+
     data = request.get_json()
     try:
         client_resp = ClientRequest(data)
@@ -139,6 +142,9 @@ def init_training():
     #print("Start training")
     current_app.logger.info("New Super round")
     current_app.logger.info("Start training")
+    if(current_app.config["TEST_MODE"]==1):        
+        print("Starting Test Training Round")
+
     """
     Route for initializing a training session.
     """
