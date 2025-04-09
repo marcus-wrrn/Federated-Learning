@@ -57,7 +57,7 @@ def upload_model():
         model_data.save(filepath)
 
         if(current_app.config["TEST_MODE"]):            
-            uploaded_byte_size = model_data.read()
+            #uploaded_byte_size = model_data.read()
             validation_path = r"../../data/test/client_test/"
             VAL_DIR = r"data/test/client_test/"
             print(f"Cur dir {os.getcwd()}")
@@ -79,6 +79,8 @@ def upload_model():
             print(validation_model_path)
             with open(validation_model_path, "rb") as f:
                 val_byte_size = f.read()
+            with open(filepath, "rb") as f:
+                uploaded_byte_size = f.read()
             upload_hash = hashlib.sha256(uploaded_byte_size).hexdigest()
             val_hash = hashlib.sha256(val_byte_size).hexdigest()
             if(upload_hash == val_hash):
