@@ -210,7 +210,7 @@ def init_training():
                 if(init_error):
                     print("Test case failed")
                     return
-               else:
+                else:
                     print("Test has been passed")
             print("Round initialized")
             print("Here5")
