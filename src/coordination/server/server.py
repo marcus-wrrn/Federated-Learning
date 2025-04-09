@@ -165,11 +165,16 @@ def init_training():
             )
             current_app.logger.info("Round initializer")
             current_app.logger.info("Round initializer")
-            epoch = f"Max rounds : {data["max_rounds"]}"
-            threshold = f"Client threshold : {data["client_threshold"]}"
-            lr = f"Learning rate : {data["learning_rate"]}"
-            step = f"Step size : {data["step_size"]}"
-            gam = f"Gamma : {data["gamma"]}"
+            rounds = data["max_rounds"]
+            epoch = f"Max rounds : {rounds}"
+            c_thresh = client_threshold
+            threshold = f"Client threshold : {c_thresh}"
+            learning = data["learning_rate"]
+            lr = f"Learning rate : {learning}"
+            ss = data["step_size"]
+            step = f"Step size : {ss}"
+            g = data["gamma"]
+            gam = f"Gamma : {g}"
 
             current_app.logger.info(epoch)
             current_app.logger.info(threshold)
