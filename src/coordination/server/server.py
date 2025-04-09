@@ -152,9 +152,11 @@ def init_training():
     print(f"Data: {data}")
     try:
         if "max_rounds" not in data or "client_threshold" not in data or "learning_rate" not in data or "step_size" not in data or "gamma" not in data:
+            print("Here")
             raise Exception("Request missing required parameters")
         
         with CoordinationDB(current_app.config["DATAPATH"]) as db:
+            print("here2")
             db.initialize_training(
                 instance_path=current_app.instance_path,
                 max_rounds=data["max_rounds"], 
@@ -163,6 +165,7 @@ def init_training():
                 step_size=data["step_size"],
                 gamma=data["gamma"]
             )
+            print("Here3")
             current_app.logger.info("Round initializer")
             current_app.logger.info("Round initializer")
             rounds = data["max_rounds"]
@@ -175,7 +178,7 @@ def init_training():
             step = f"Step size : {ss}"
             g = data["gamma"]
             gam = f"Gamma : {g}"
-
+            print("Here4")
             current_app.logger.info(epoch)
             current_app.logger.info(threshold)
             current_app.logger.info(lr)
@@ -206,7 +209,7 @@ def init_training():
             #    else:
             #        print("Test has been passed")
             #print("Round initialized")
-
+            print("Here5")
             round = db.get_current_round()
             print(f"Learning rate: {round.learning_rate}")
             if round is None:
