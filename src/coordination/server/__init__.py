@@ -62,7 +62,7 @@ def create_app(test_config=None):
 
 # Custom Flask CLI command to set the environment in testing mode
 @app.cli.command("test")
-@click.option(, is_flag=True, help="What test are you running")
+@click.option(is_flag=True, help="What test are you running")
 def test(mode):
     parser = argparse.ArgumentParser()
     parser.add_argument('--mode', type=int, default=1)
