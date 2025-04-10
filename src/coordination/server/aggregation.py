@@ -67,7 +67,7 @@ def check_database():
                 current_path = os.path.dirname(current_app.instance_path)
                 current_path = os.path.dirname(current_path)
                 current_path = os.path.dirname(current_path)
-                path = os.path.join(current_path,"data/test/agg_test/6793b484275ade3f8bb8f07e434d8842.pth")              
+                path = os.path.join(current_path,"data/test/agg_test/c046410c440757e65a5daa22c9c06086.pth")              
                 print(path)
                 with open(path , "rb") as f:
                     val_byte_size = f.read()
