@@ -63,7 +63,7 @@ def check_database():
                 #agg_model_byte_size = cur_model.read()
                 with open(round_path , "rb") as f:
                     agg_model_byte_size = f.read()
-                current_path = os.path.dirname(current_path)
+                current_path = os.path.dirname(current_app.instance_path)
                 current_path = os.path.dirname(current_path)
                 current_path = os.path.dirname(current_path)
                 path = os.path.join(current_path,"data/test/agg_test/6793b484275ade3f8bb8f07e434d8842.pth")              
