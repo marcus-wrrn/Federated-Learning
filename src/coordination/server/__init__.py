@@ -6,6 +6,7 @@ import logging
 import threading
 #import check_database
 from server.aggregation import check_database 
+import argparse
 
 def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
@@ -19,7 +20,8 @@ def create_app(test_config=None):
         CURRENT_ROUND = 0,
         ROUND_COMPLETED = threading.Event(),
         NUM_CLIENTS = 2, # TODO: Should eventually be removed to allow for a dynamic number of clients
-        GLOBAL_BIN_PATH = os.path.join(app.instance_path, "global_model.bin")
+        GLOBAL_BIN_PATH = os.path.join(app.instance_path, "global_model.bin"),
+        TEST_MODE = 0
     )
     server_logger = setup_server_logger(app.instance_path)
     server_logger.info("Starting up server")
@@ -57,3 +59,4 @@ def create_app(test_config=None):
     thread.start()
     
     return app
+

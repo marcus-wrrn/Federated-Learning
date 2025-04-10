@@ -6,6 +6,7 @@ import os
 import torch
 from flcore.models.basic import HARSModel
 from server.validation import validation
+import hashlib
 
 def check_database():
     current_app.logger.info("Starting database check")
@@ -21,7 +22,7 @@ def check_database():
             print(f"Client Count: {client_count}")
 
 
-            if client_count < cur_round.client_threshold:
+            if (client_count < cur_round.client_threshold) and (current_app.config["TEST_MODE"]!=8):
                 time.sleep(30)
                 continue
 
@@ -56,6 +57,34 @@ def check_database():
             # save the aggregate model         
             cur_model.load_state_dict(aggregate_states)
             torch.save(cur_model.state_dict(), round_path)
+
+            if(current_app.config["TEST_MODE"]==8):   
+                print("Aggregating test")     
+                #agg_model_byte_size = cur_model.read()
+                print(round_path)
+                with open(round_path , "rb") as f:
+                    agg_model_byte_size = f.read()
+                current_path = os.path.dirname(current_app.instance_path)
+                current_path = os.path.dirname(current_path)
+                current_path = os.path.dirname(current_path)
+                path = os.path.join(current_path,"data/test/agg_test/c046410c440757e65a5daa22c9c06086.pth")              
+                print(path)
+                with open(path , "rb") as f:
+                    val_byte_size = f.read()
+
+                agg_hash = hashlib.sha256(agg_model_byte_size).hexdigest()
+                val_hash = hashlib.sha256(val_byte_size).hexdigest()
+                if(agg_hash == val_hash):
+                    print("Aggregate successful")
+                else:
+                    print("Aggregate failed. Model not identical")
+
+                for key in cur_model.state_dict():
+                    val1 = cur_model.state_dict()[key]
+                    val2 = torch.load(path)[key]
+                    if not torch.equal(val1, val2):
+                        print(f"Mismatch in layer: {key}")
+                        print(torch.allclose(val1, val2)) 
 
             ## Do validation
             # Get test data set path
@@ -105,6 +134,8 @@ def agg_model(client_states , round_state:dict) -> dict:
         #print(client_state)
     if len(client_states) == 0:
         return round_state
+    print(len(client_states))    
     for key in round_state.keys():
         new_state[key] = sum([client_state[key] for client_state in client_states]) / len(client_states)
+    print(len(new_state))
     return new_state        

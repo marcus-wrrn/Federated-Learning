@@ -7,6 +7,7 @@ import sqlite3
 from server.database_orm import CoordinationDB
 from server.data_classes import ClientRequest, CoordinationResponse, ClientState, Hyperparameters
 from dataclasses import asdict
+import hashlib
 
 bp = Blueprint("training", __name__, url_prefix="/training")
 
@@ -20,7 +21,17 @@ def get_model(model_id):
             return "Model does not exist", 404
         if not os.path.exists(path):
             return "Model has been deleted", 500
-
+    if(current_app.config["TEST_MODE"]==2):        
+        #path = current_app.instance_path +  
+        ## Need to find the path to the data
+        #<directory of the file where __name__ is defined>/instance is where current_app.instance_app. So it is in coordination/server
+        # Receive test case
+        current_path = current_app.instance_path
+        current_path = os.path.dirname(current_path)
+        current_path = os.path.dirname(current_path)
+        current_path = os.path.dirname(current_path)
+        path = os.path.join(current_path,"data/test/agg_test/6793b484275ade3f8bb8f07e434d8842.pth")              
+        
     return send_file(path)
 
 @bp.route('/upload-model', methods=['POST'])
@@ -44,6 +55,35 @@ def upload_model():
                 return f"Pathing error", 500
     
         model_data.save(filepath)
+        
+        if(current_app.config["TEST_MODE"]):            
+            last_test_mode = False
+            VAL_DIR = r"data/test/client_test/"
+            current_path = os.path.dirname(os.getcwd())
+            current_path = os.path.dirname(current_path)
+            validation_dir = os.path.join(current_path,VAL_DIR)
+            if(client_id == "6241e9b7ba3b4fae90405cd726f30b28"):
+                validation_model_path = os.path.join(validation_dir,r"client1/model.pth") 
+            elif(client_id == "8cb593a3d8d1af7e87126012f6c8ba86"):
+                validation_model_path = os.path.join(validation_dir,r"client2/model.pth") 
+            elif(client_id == "e6d43a022b8cdc5bca1ac9dd8371afb5"):
+                validation_model_path = os.path.join(validation_dir,r"client3/model.pth") 
+                last_test_mode = True 
+                
+            # assuming running from src/coordinate/
+            with open(validation_model_path, "rb") as f:
+                val_byte_size = f.read()
+            with open(filepath, "rb") as f:
+                uploaded_byte_size = f.read()
+            upload_hash = hashlib.sha256(uploaded_byte_size).hexdigest()
+            val_hash = hashlib.sha256(val_byte_size).hexdigest()
+            if(upload_hash == val_hash):
+                print("Upload successful")
+            else:
+                print("Upload failed. Model not identical")
+            if(last_test_mode):
+                current_app.config["TEST_MODE"]=8
+            
         return "Model saved", 200
     except Exception as e:
         return f"Error uploading model: {e}", 500
@@ -57,6 +97,9 @@ def display():
 
 @bp.route('/ping', methods=['POST'])
 def ping_server():
+    if(current_app.config["TEST_MODE"]==1):        
+        print("Test Server")
+
     data = request.get_json()
     try:
         client_resp = ClientRequest(data)
@@ -105,6 +148,9 @@ def init_training():
     #print("Start training")
     current_app.logger.info("New Super round")
     current_app.logger.info("Start training")
+    if(current_app.config["TEST_MODE"]==1):        
+        print("Starting Test Training Round")
+
     """
     Route for initializing a training session.
     """
@@ -112,9 +158,11 @@ def init_training():
     print(f"Data: {data}")
     try:
         if "max_rounds" not in data or "client_threshold" not in data or "learning_rate" not in data or "step_size" not in data or "gamma" not in data:
+            print("Here")
             raise Exception("Request missing required parameters")
         
         with CoordinationDB(current_app.config["DATAPATH"]) as db:
+            print("here2")
             db.initialize_training(
                 instance_path=current_app.instance_path,
                 max_rounds=data["max_rounds"], 
@@ -123,9 +171,55 @@ def init_training():
                 step_size=data["step_size"],
                 gamma=data["gamma"]
             )
+            print("Here3")
             current_app.logger.info("Round initializer")
-            #print("Round initialized")
-
+            current_app.logger.info("Round initializer")
+            rounds = data["max_rounds"]
+            epoch = f"Max rounds : {rounds}"
+            print(epoch)
+            c_thresh = data["client_threshold"]
+            threshold = f"Client threshold : {c_thresh}"
+            print(threshold)
+            learning = data["learning_rate"]
+            lr = f"Learning rate : {learning}"
+            print(lr)
+            ss = data["step_size"]
+            step = f"Step size : {ss}"
+            print(step)
+            g = data["gamma"]
+            gam = f"Gamma : {g}"
+            print("Here4")
+            current_app.logger.info(epoch)
+            current_app.logger.info(threshold)
+            current_app.logger.info(lr)
+            current_app.logger.info(step)
+            current_app.logger.info(gam)
+            print(current_app.config["TEST_MODE"])
+            if(current_app.config["TEST_MODE"]==5):
+                print("Here")
+                init_error = False
+                if(data["max_rounds"]!=1):
+                    print("Error max rounds different then expected")
+                    init_error = True
+                if(data["client_threshold"]!=5):
+                    print("Error client threshold different then expected")
+                    init_error = True
+                if(data["learning_rate"]!=0.00001):
+                    print("Error learning rate different then expected")
+                    init_error = True
+                if(data["step_size"]!=3):
+                    print("Error step size different then expected")
+                    init_error = True
+                if(data["gamma"]!=0.2):
+                    print("Error gamma different then expected")
+                    init_error = True
+                if(init_error):
+                    print("Test case failed")
+                    return
+                else:
+                    print("Test has been passed")
+            print("Round initialized")
+            print("Here5")
             round = db.get_current_round()
             print(f"Learning rate: {round.learning_rate}")
             if round is None:
@@ -148,7 +242,7 @@ def shutdown():
         db.stop_training()
     return jsonify({"message": "Stopped Training", "success": True}), 200
     
-@bp.route('/connect_test',methods=['POST','GET'])
+@bp.route('/connection_test',methods=['POST','GET'])
 def connected():
     print("The following device has connected to the network : "+request.remote_addr)
     print("End message")
