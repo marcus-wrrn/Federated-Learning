@@ -60,7 +60,9 @@ def check_database():
 
             if(current_app.config["TEST_MODE"]==8):   
                 print("Aggregating test")     
-                agg_model_byte_size = cur_model.read()
+                #agg_model_byte_size = cur_model.read()
+                with open(round_path , "rb") as f:
+                    agg_model_byte_size = f.read()
                 current_path = os.path.dirname(current_path)
                 current_path = os.path.dirname(current_path)
                 current_path = os.path.dirname(current_path)
