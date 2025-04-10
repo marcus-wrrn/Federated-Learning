@@ -79,6 +79,13 @@ def check_database():
                 else:
                     print("Aggregate failed. Model not identical")
 
+                for key in cur_model.state_dict():
+                    val1 = cur_model.state_dict()[key]
+                    val2 = torch.load(path)[key]
+                    if not torch.equal(val1, val2):
+                        print(f"Mismatch in layer: {key}")
+                        print(torch.allclose(val1, val2)) 
+
             ## Do validation
             # Get test data set path
             datapath = current_app.instance_path
